@@ -3776,20 +3776,7 @@ public:
 ```cpp
 class Solution {
 private:
-    std::vector<std::vector<int>> res;
-
-public:
-    vector<vector<int>> permute(vector<int>& nums) {
-        // edge case
-        if (nums.empty()) return {};
-
-        std::vector<int> path;
-        std::vector<bool> used(nums.size(), false);
-        backtrack(nums, path, used);
-        return res;
-    }
-
-    void backtrack(const vector<int>& nums, std::vector<int>& path, std::vector<bool>& used) {
+    void backtrack(const vector<int>& nums, std::vector<int>& path, std::vector<bool>& used, std::vector<std::vector<int>>& res) {
         if (path.size() == nums.size()) {
             // collect result
             res.push_back(path);
@@ -3802,11 +3789,23 @@ public:
             // make decision
             path.push_back(nums[i]);
             used[i] = true;
-            backtrack(nums, path, used);
+            backtrack(nums, path, used, res);
             // cancel decision
             used[i] = false;
             path.pop_back();
         }
+    }
+
+public:
+    vector<vector<int>> permute(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return {};
+
+        std::vector<int> path;
+        std::vector<bool> used(nums.size(), false);
+        std::vector<std::vector<int>> res;
+        backtrack(nums, path, used, res);
+        return res;
     }
 };
 ```
@@ -3892,6 +3891,1310 @@ public:
         }
 
         return dummyNode->next;
+    }
+};
+```
+
+### [199. Binary Tree Right Side View](https://leetcode.com/problems/binary-tree-right-side-view/)
+
+#### bfs
+
+```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+public:
+    vector<int> rightSideView(TreeNode* root) {
+        // edge case
+        if (!root) return {};
+
+        std::vector<int> res;
+
+        std::queue<TreeNode*> q;
+        q.push(root);
+
+        while (!q.empty()) {
+            auto length = q.size();
+            while (length--) {
+                auto node = q.front();
+                q.pop();
+                if (length == 0) res.push_back(node->val);
+                
+                if (node->left) q.push(node->left);
+                if (node->right) q.push(node->right);
+            }
+        }
+
+        return res;
+    }
+};
+```
+
+#### dfs
+
+```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+public:
+    vector<int> rightSideView(TreeNode* root) {
+        // edge case
+        if (!root) return {};
+
+        std::vector<int> res;
+
+        dfs(root, 0, res);
+
+        return res;
+    }
+
+    void dfs(TreeNode* root, int depth, std::vector<int>& res) {
+        // base case
+        if (!root) return;
+
+        if (depth == res.size()) res.push_back(root->val);
+        dfs(root->right, depth + 1, res);
+        dfs(root->left, depth + 1, res);
+    }
+};
+```
+
+### [1022. Sum of Root To Leaf Binary Numbers](https://leetcode.com/problems/sum-of-root-to-leaf-binary-numbers/)
+
+#### dfs
+
+```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+public:
+    int sumRootToLeaf(TreeNode* root) {
+        // edge case
+        if (!root) return -1;
+
+        std::vector<int> nums;
+        std::string binaryStr;
+        dfs(root, binaryStr, nums);
+
+        int res = 0;
+        for (const auto num : nums) {
+            res += num;
+        }
+
+        return res;
+    }
+
+    void dfs(TreeNode* root, std::string& binaryStr, std::vector<int>& nums) {
+        // base case
+        if (!root) return;
+
+        binaryStr += std::to_string(root->val);
+
+        // collect result
+        if (!root->left && !root->right) {
+            nums.push_back(std::stoi(binaryStr, nullptr, 2));
+            binaryStr.pop_back();
+            return;
+        }
+
+        dfs(root->left, binaryStr, nums);
+        dfs(root->right, binaryStr, nums);
+
+        binaryStr.pop_back();
+    }
+};
+```
+
+#### bfs
+
+```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+public:
+    int sumRootToLeaf(TreeNode* root) {
+        // edge case
+        if (!root) return -1;
+
+        std::vector<int> nums;
+
+        std::queue<std::pair<TreeNode*, std::string>> q;
+        q.push({root, std::to_string(root->val)});
+
+        while (!q.empty()) {
+            auto length = q.size();
+            while (length--) {
+                auto pair = q.front();
+                q.pop();
+
+                // collect result
+                if (!pair.first->left && !pair.first->right) {
+                    nums.push_back(std::stoi(pair.second, nullptr, 2));
+                    continue;
+                }
+
+                if (pair.first->left) q.push({pair.first->left, pair.second + std::to_string(pair.first->left->val)});
+                if (pair.first->right) q.push({pair.first->right, pair.second + std::to_string(pair.first->right->val)});
+            }
+        }
+
+        int res = 0;
+        for (const auto num : nums) {
+            res += num;
+        }
+
+        return res;
+    }
+};
+```
+
+### [958. Check Completeness of a Binary Tree](https://leetcode.com/problems/check-completeness-of-a-binary-tree/)
+
+```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+public:
+    bool isCompleteTree(TreeNode* root) {
+        // edge case
+        if (!root) return true;
+
+        bool firstEncounterNullNode = false;
+
+        std::queue<TreeNode*> q;
+        q.push(root);
+
+        while (!q.empty()) {
+            auto length = q.size();
+            while (length--) {
+                auto node = q.front();
+                q.pop();
+
+                if (node->left) {
+                    if (firstEncounterNullNode) return false;
+                    q.push(node->left);
+                } else {
+                    firstEncounterNullNode = true;
+                }
+
+                if (node->right) {
+                    if (firstEncounterNullNode) return false;
+                    q.push(node->right);
+                } else {
+                    firstEncounterNullNode = true;
+                }
+            }
+        }
+
+        return true;
+    }
+};
+
+/*
+a binary tree is a complete binary tree if and only if:
+during a level-order traversal (BFS), once a null (empty) node is encountered, there must be no non-null nodes after it
+*/
+```
+
+### [37. Sudoku Solver](https://leetcode.com/problems/sudoku-solver/)
+
+```cpp
+class Solution {
+private:
+    bool isFound = false;
+
+    bool isValid(const vector<vector<char>>& board, int row, int column, char num) {
+        for (int i = 0; i < 9; i++) {
+            if (board[row][i] == num) return false;
+            if (board[i][column] == num) return false;
+            if (board[(row / 3) * 3 + i / 3][(column / 3) * 3 + i % 3] == num) return false;
+        }
+
+        return true;
+    }
+
+    void backtrack(vector<vector<char>>& board, int index) {
+        // prune
+        if (isFound) return;
+
+        int m = 9;
+        int n = 9;
+
+        // collect result
+        if (index == m * n) {
+            isFound = true;
+            return;
+        }
+
+        int i = index / 9;
+        int j = index % 9;
+
+        if (board[i][j] != '.') {
+            backtrack(board, index + 1);
+            return;
+        }
+
+        for (char ch = '1'; ch <= '9'; ++ch) {
+            if (!isValid(board, i, j, ch)) continue;
+
+            // make decision
+            board[i][j] = ch;
+            backtrack(board, index + 1);
+            if (isFound) return;
+            // cancel decision
+            board[i][j] = '.';
+        }
+    }
+
+public:
+    void solveSudoku(vector<vector<char>>& board) {
+        backtrack(board, 0);
+    }
+};
+```
+
+### [51. N-Queens](https://leetcode.com/problems/n-queens/)
+
+```cpp
+class Solution {
+private:
+    bool isValid(const vector<string>& board, int row, int col) {
+        int n = board.size();
+        for (int i = 0; i < row; ++i) {
+            if (board[i][col] == 'Q')
+                return false;
+        }
+        for (int i = row - 1, j = col + 1; i >= 0 && j < n; --i, ++j) {
+            if (board[i][j] == 'Q')
+                return false;
+        }
+        for (int i = row - 1, j = col - 1; i >= 0 && j >= 0; --i, --j) {
+            if (board[i][j] == 'Q')
+                return false;
+        }
+        return true;
+    }
+
+    void backtrack(std::vector<std::string>& board, int row, std::vector<std::vector<std::string>>& res) {
+        // base case
+        if (row == board.size()) {
+            // collect result
+            res.push_back(board);
+            return;
+        }
+
+        for (int col = 0; col < board[0].size(); ++col) {
+            if (!isValid(board, row, col)) continue;
+
+            // make decision
+            board[row][col] = 'Q';
+
+            backtrack(board, row + 1, res);
+
+            // cancel decision
+            board[row][col] = '.';
+        }
+    }
+
+public:
+    vector<vector<string>> solveNQueens(int n) {
+        // edge case
+        if (n < 1 || n > 9) return {};
+
+        std::vector<std::string> board(n, std::string(n, '.'));
+        std::vector<std::vector<std::string>> res;
+        backtrack(board, 0, res);
+        return res;
+    }
+};
+```
+
+### [52. N-Queens II](https://leetcode.com/problems/n-queens-ii/)
+
+```cpp
+class Solution {
+private:
+    bool isValid(const vector<string>& board, int row, int col) {
+        int n = board.size();
+        for (int i = 0; i < row; ++i) {
+            if (board[i][col] == 'Q')
+                return false;
+        }
+        for (int i = row - 1, j = col + 1; i >= 0 && j < n; --i, ++j) {
+            if (board[i][j] == 'Q')
+                return false;
+        }
+        for (int i = row - 1, j = col - 1; i >= 0 && j >= 0; --i, --j) {
+            if (board[i][j] == 'Q')
+                return false;
+        }
+        return true;
+    }
+
+    void backtrack(std::vector<std::string>& board, int row, std::vector<std::vector<std::string>>& res) {
+        // base case
+        if (row == board.size()) {
+            // collect result
+            res.push_back(board);
+            return;
+        }
+
+        for (int col = 0; col < board[0].size(); ++col) {
+            if (!isValid(board, row, col)) continue;
+
+            // make decision
+            board[row][col] = 'Q';
+
+            backtrack(board, row + 1, res);
+
+            // cancel decision
+            board[row][col] = '.';
+        }
+    }
+
+public:
+    int totalNQueens(int n) {
+        // edge case
+        if (n < 1 || n > 9) return 0;
+
+        std::vector<std::string> board(n, std::string(n, '.'));
+        std::vector<std::vector<std::string>> res;
+        backtrack(board, 0, res);
+        return res.size();
+    }
+};
+```
+
+### [78. Subsets](https://leetcode.com/problems/subsets/)
+
+```cpp
+class Solution {
+private:
+    void backtrack(std::vector<int>& nums, std::vector<int>& path, std::vector<std::vector<int>>& res, int index) {
+        // collect result
+        res.push_back(path);
+
+        for (int i = index; i < nums.size(); ++i) {
+            // make decision
+            path.push_back(nums[i]);
+
+            backtrack(nums, path, res, i + 1);
+
+            // cancel decision
+            path.pop_back();
+        }
+    }
+
+public:
+    vector<vector<int>> subsets(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return {};
+
+        std::vector<std::vector<int>> res;
+        std::vector<int> path;
+        backtrack(nums, path, res, 0);
+        return res;
+    }
+};
+```
+
+### [77. Combinations](https://leetcode.com/problems/combinations/)
+
+```cpp
+class Solution {
+private:
+    void backtrack(int n, int k, int index, std::vector<int>& path, std::vector<std::vector<int>>& res) {
+        // collect data
+        if (path.size() == k) {
+            res.push_back(path);
+            return;
+        }
+
+        for (int i = index; i <= n; ++i) {
+            // make decision
+            path.push_back(i);
+
+            backtrack(n, k, i + 1, path, res);
+
+            // cancel decision
+            path.pop_back();
+        }
+    }
+
+public:
+    vector<vector<int>> combine(int n, int k) {
+        // edge case
+        if (n < 1 || n < k) return {};
+
+        std::vector<int> path;
+        std::vector<std::vector<int>> res;
+        backtrack(n, k, 1, path, res);
+        return res;
+    }
+};
+```
+
+### [90. Subsets II](https://leetcode.com/problems/subsets-ii/)
+
+```cpp
+class Solution {
+private:
+    void backtrack(std::vector<int>& nums, std::vector<int>& path, std::vector<std::vector<int>>& res, int index) {
+        // collect result
+        res.push_back(path);
+
+        for (int i = index; i < nums.size(); ++i) {
+            if (i > index && nums[i] == nums[i - 1]) continue;
+            // make decision
+            path.push_back(nums[i]);
+
+            backtrack(nums, path, res, i + 1);
+
+            // cancel decision
+            path.pop_back();
+        }
+    }
+
+public:
+    vector<vector<int>> subsetsWithDup(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return {};
+
+        std::sort(nums.begin(), nums.end());
+
+        std::vector<std::vector<int>> res;
+        std::vector<int> path;
+        backtrack(nums, path, res, 0);
+        return res;
+    }
+};
+```
+
+### [40. Combination Sum II](https://leetcode.com/problems/combination-sum-ii/)
+
+```cpp
+class Solution {
+private:
+    void backtrack(vector<int>& candidates, int target, int sum, int index, std::vector<int>& path, std::vector<std::vector<int>>& res) {
+        // collect result
+        if (sum == target) {
+            res.push_back(path);
+            return;
+        }
+
+        for (int i = index; i < candidates.size(); ++i) {
+            if (sum + candidates[i] > target) continue;
+            if (i > index && candidates[i] == candidates[i - 1]) continue;
+
+            // make decision
+            path.push_back(candidates[i]);
+
+            backtrack(candidates, target, sum + candidates[i], i + 1, path, res);
+
+            // cancel decision
+            path.pop_back();
+        }
+    }
+
+public:
+    vector<vector<int>> combinationSum2(vector<int>& candidates, int target) {
+        // edge case
+        if (candidates.empty()) return {};
+
+        std::sort(candidates.begin(), candidates.end());
+
+        std::vector<int> path;
+        std::vector<std::vector<int>> res;
+        backtrack(candidates, target, 0, 0, path, res);
+        return res;
+    }
+};
+```
+
+### [47. Permutations II](https://leetcode.com/problems/permutations-ii/)
+
+```cpp
+class Solution {
+private:
+    void backtrack(std::vector<int>& nums, std::vector<int>& path, std::set<int>& used, std::vector<std::vector<int>>& res) {
+        // collect result
+        if (path.size() == nums.size()) {
+            res.push_back(path);
+            return;
+        }
+
+        for (int i = 0; i < nums.size(); ++i) {
+            if (used.count(i)
+                || (i > 0 && nums[i] == nums[i - 1] && !used.count(i - 1))) continue;
+
+            // make decision
+            path.push_back(nums[i]);
+            used.insert(i);
+
+            backtrack(nums, path, used, res);
+
+            // cancel decision
+            used.erase(i);
+            path.pop_back();
+        }
+    }
+
+public:
+    vector<vector<int>> permuteUnique(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return {};
+
+        std::sort(nums.begin(), nums.end());
+
+        std::vector<int> path;
+        std::set<int> used;
+        std::vector<std::vector<int>> res;
+        backtrack(nums, path, used, res);
+        return res;
+    }
+};
+```
+
+### [39. Combination Sum](https://leetcode.com/problems/combination-sum/)
+
+```cpp
+class Solution {
+private:
+    void backtrack(std::vector<int>& candidates, int target, int sum, int index, std::vector<int>& path, std::vector<std::vector<int>>& res) {
+        // collect result
+        if (sum == target) {
+            res.push_back(path);
+            return;
+        }
+
+        for (int i = index; i < candidates.size(); ++i) {
+            if (sum + candidates[i] > target) break;
+
+            // make decision
+            path.push_back(candidates[i]);
+            sum += candidates[i];
+
+            backtrack(candidates, target, sum, i, path, res);
+
+            // cancel decision
+            sum -= candidates[i];
+            path.pop_back();
+        }
+    }
+
+public:
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        // edge case
+        if (candidates.empty()) return {};
+
+        std::sort(candidates.begin(), candidates.end());
+
+        std::vector<int> path;
+        std::vector<std::vector<int>> res;
+        backtrack(candidates, target, 0, 0, path, res);
+        return res;
+    }
+};
+```
+
+### [22. Generate Parentheses](https://leetcode.com/problems/generate-parentheses/)
+
+#### template solution, not a good solution
+
+```cpp
+class Solution {
+private:
+    void backtrack(const std::string& str, std::stack<char>& stk, std::string& path, std::set<int>& used, std::vector<std::string>& res) {
+        // collect result
+        if (path.size() == str.size() && stk.empty()) {
+            res.push_back(path);
+            return;
+        }
+
+        for (int i = 0; i < str.size(); ++i) {
+            // prune
+            if (used.count(i)) continue;
+            if (i > 0 && str[i] == str[i - 1] && !used.count(i - 1)) continue;
+
+            // make decision
+            path.push_back(str[i]);
+            used.insert(i);
+            auto tmpStk = stk;
+            if ((str[i] == ')' && !stk.empty() && stk.top() == '(')) {
+                stk.pop();
+            } else {
+                stk.push(str[i]);
+            }
+
+            backtrack(str, stk, path, used, res);
+
+            // cancel decision
+            stk = tmpStk;
+            used.erase(i);
+            path.pop_back();
+        }
+    }
+
+public:
+    vector<string> generateParenthesis(int n) {
+        // edge case
+        if (n < 1) return {};
+
+        std::string str = std::string(n, '(') + std::string(n, ')');
+        std::stack<char> stk;
+        std::string path;
+        std::set<int> used;
+        std::vector<std::string> res;
+        backtrack(str, stk, path, used, res);
+
+        return res;
+    }
+};
+```
+
+#### smarter solution
+
+```cpp
+class Solution {
+private:
+    void backtrack(int n, int left, int right, std::string& path, std::vector<std::string>& res) {
+        // collect result
+        if (path.size() == n * 2) {
+            res.push_back(path);
+            return;
+        }
+
+        if (left < n) {
+            path.push_back('(');
+            backtrack(n, left + 1, right, path, res);
+            path.pop_back();
+        }
+
+        if (right < left) {
+            path.push_back(')');
+            backtrack(n, left, right + 1, path, res);
+            path.pop_back();
+        }
+    }
+
+public:
+    vector<string> generateParenthesis(int n) {
+        // edge case
+        if (n < 1) return {};
+
+        std::string path;
+        std::vector<std::string> res;
+        backtrack(n, 0, 0, path, res);
+
+        return res;
+    }
+};
+```
+
+### [200. Number of Islands](https://leetcode.com/problems/number-of-islands/)
+
+```cpp
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) {
+            return 0;
+        }
+
+        int res = 0;
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                if (grid[r][c] == '1') {
+                    ++res;
+                    bfs(grid, r, c);
+                }
+            }
+        }
+
+        return res;
+    }
+
+private:
+    void dfs(vector<vector<char>>& grid, int r, int c) {
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        if (r < 0 || c < 0 || r >= rows || c >= cols || grid[r][c] == '0') {
+            return;
+        }
+
+        grid[r][c] = '0';
+
+        dfs(grid, r - 1, c);
+        dfs(grid, r + 1, c);
+        dfs(grid, r, c - 1);
+        dfs(grid, r, c + 1);
+    }
+
+    void bfs(vector<vector<char>>& grid, int r, int c) {
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        std::queue<std::pair<int, int>> q;
+
+        q.push({r, c});
+        grid[r][c] = '0';
+
+        std::vector<std::pair<int, int>> directions = {
+            {0, -1},
+            {0, 1},
+            {1, 0},
+            {-1, 0},
+        };
+
+        while (!q.empty()) {
+            auto [curx, cury] = q.front();
+            q.pop();
+
+            for (const auto [dx, dy] : directions) {
+                auto x = curx + dx;
+                auto y = cury + dy;
+
+                if (x < rows && x >= 0
+                    && y < cols && y >= 0
+                    && grid[x][y] == '1') {
+                    grid[x][y] = '0';
+                    q.push({x, y});
+                }
+            }
+        }
+    }
+};
+```
+
+### [1254. Number of Closed Islands](https://leetcode.com/problems/number-of-closed-islands/)
+
+```cpp
+class Solution {
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, -1},
+        {0, 1},
+        {1, 0},
+        {-1, 0},
+    };
+
+public:
+    int closedIsland(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) return 0;
+
+        auto rows = grid.size();
+        auto cols = grid[0].size();
+        int res = 0;
+
+        for (int r = 0; r < rows; ++r) {
+            bfs(grid, r, 0);
+            bfs(grid, r, cols - 1);
+        }
+
+        for (int c = 0; c < cols; ++c) {
+            bfs(grid, 0, c);
+            bfs(grid, rows - 1, c);
+        }
+
+        for (int r = 1; r < rows - 1; ++r) {
+            for (int c = 1; c < cols - 1; ++c) {
+                if (grid[r][c] == 0) {
+                    ++res;
+                    bfs(grid, r, c);
+                }
+            }
+        }
+
+        return res;
+    }
+
+private:
+    void dfs(std::vector<std::vector<int>>& grid, int r, int c) {
+        auto rows = grid.size();
+        auto cols = grid[0].size();
+
+        // base case
+        if (r < 0 || r >= rows || c < 0 || c >= cols || grid[r][c] == 1) return;
+
+        grid[r][c] = 1;
+
+        for (const auto [dx, dy] : directions) {
+            auto x = r + dx;
+            auto y = c + dy;
+
+            dfs(grid, x, y);
+        }
+    }
+
+    void bfs(std::vector<std::vector<int>>& grid, int r, int c) {
+        auto rows = grid.size();
+        auto cols = grid[0].size();
+
+        // base case
+        if (r < 0 || r >= rows || c < 0 || c >= cols || grid[r][c] == 1) return;
+
+        std::queue<std::pair<int, int>> q;
+
+        q.push({r, c});
+        grid[r][c] = 1;
+
+        while (!q.empty()) {
+            auto [curx, cury] = q.front();
+            q.pop();
+
+            for (const auto [dx, dy] : directions) {
+                auto x = curx + dx;
+                auto y = cury + dy;
+
+                if (x < rows && x >= 0
+                    && y < cols && y >= 0
+                    && grid[x][y] == 0) {
+                    grid[x][y] = 1;
+                    q.push({x, y});
+                }
+            }
+        }
+    }
+};
+```
+
+### [797. All Paths From Source to Target](https://leetcode.com/problems/all-paths-from-source-to-target/)
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> allPathsSourceTarget(vector<vector<int>>& graph) {
+        // edge case
+        if (graph.empty() || graph[0].empty()) return {};
+        
+        std::vector<int> path;
+        path.push_back(0);
+        std::vector<std::vector<int>> res;
+
+        backtrack(graph, path, res, 0);
+
+        return res;
+    }
+
+    void backtrack(std::vector<std::vector<int>>& graph, std::vector<int>& path, std::vector<std::vector<int>>& res, int startIndex) {
+        // collect result
+        const int target = graph.size() - 1;
+        if (startIndex == target) {
+            res.push_back(path);
+            return;
+        }
+
+        for (const auto nextIndex : graph[startIndex]) {
+            // make decision
+            path.push_back(nextIndex);
+
+            backtrack(graph, path, res, nextIndex);
+
+            // cancel decision
+            path.pop_back();
+        }
+    }
+};
+```
+
+### [695. Max Area of Island](https://leetcode.com/problems/max-area-of-island/)
+
+```cpp
+class Solution {
+public:
+    int maxAreaOfIsland(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) return 0;
+
+        int rows = grid.size();
+        int cols = grid[0].size();
+        int maxArea = 0;
+
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                if (grid[r][c] == 1) {
+                    int area = 0;
+                    bfs(grid, r, c, area);
+                    if (area > maxArea) {
+                        maxArea = area;
+                    }
+                }
+            }
+        }
+
+        return maxArea;
+    }
+
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, -1},
+        {0, 1},
+        {1, 0},
+        {-1, 0},
+    };
+
+    void dfs(std::vector<std::vector<int>>& grid, int r, int c, int& area) {
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        // base case
+        if (r < 0 || r >= rows ||
+            c < 0 || c >= cols ||
+            grid[r][c] == 0) {
+            return;
+        }
+
+        ++area;
+        grid[r][c] = 0;
+
+        for (const auto& [dx, dy] : directions) {
+            int x = r + dx;
+            int y = c + dy;
+
+            dfs(grid, x, y, area);
+        }
+    }
+
+    void bfs(std::vector<std::vector<int>>& grid, int r, int c, int& area) {
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        // base case
+        if (r < 0 || r >= rows ||
+            c < 0 || c >= cols ||
+            grid[r][c] == 0) {
+            return;
+        }
+
+        ++area;
+        grid[r][c] = 0;
+
+        std::queue<std::pair<int, int>> q;
+        q.push({r, c});
+
+        while (!q.empty()) {
+            auto [curR, curC] = q.front();
+            q.pop();
+
+            for (const auto& [dx, dy] : directions) {
+                int x = curR + dx;
+                int y = curC + dy;
+
+                if (x < 0 || x >= rows ||
+                    y < 0 || y >= cols ||
+                    grid[x][y] == 0) {
+                    continue;
+                }
+
+                grid[x][y] = 0;
+                ++area;
+                q.push({x, y});
+            }
+        }
+    }
+};
+```
+
+### [1905. Count Sub Islands](https://leetcode.com/problems/count-sub-islands/)
+
+```cpp
+class Solution {
+public:
+    int countSubIslands(vector<vector<int>>& grid1, vector<vector<int>>& grid2) {
+        // edge case
+        if (grid1.empty() || 
+            grid1[0].empty() ||
+            grid1.size() != grid2.size() || 
+            grid1[0].size() != grid2[0].size()) {
+            return 0;
+        }
+
+        int res = 0;
+        int rows = grid1.size();
+        int cols = grid1[0].size();
+
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                if (grid1[r][c] == 0 && grid2[r][c] == 1) {
+                    bfs(grid2, r, c);
+                }
+            }
+        }
+
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                if (grid2[r][c] == 1) {
+                    ++res;
+                    bfs(grid2, r, c);
+                }
+            }
+        }
+
+        return res;
+    }
+
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, -1},
+        {0, 1},
+        {1, 0},
+        {-1, 0},
+    };
+
+    void dfs(std::vector<std::vector<int>>& grid, int r, int c) {
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        // base case
+        if (r < 0 || r >= rows ||
+            c < 0 || c >= cols ||
+            grid[r][c] == 0) {
+            return;
+        }
+
+        grid[r][c] = 0;
+
+        for (const auto& [dx, dy] : directions) {
+            int x = r + dx;
+            int y = c + dy;
+
+            dfs(grid, x, y);
+        }
+    }
+
+    void bfs(std::vector<std::vector<int>>& grid, int r, int c) {
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        // base case
+        if (r < 0 || r >= rows ||
+            c < 0 || c >= cols ||
+            grid[r][c] == 0) {
+            return;
+        }
+
+        grid[r][c] = 0;
+
+        std::queue<std::pair<int, int>> q;
+        q.push({r, c});
+
+        while (!q.empty()) {
+            auto [curR, curC] = q.front();
+            q.pop();
+
+            for (const auto& [dx, dy] : directions) {
+                int x = curR + dx;
+                int y = curC + dy;
+
+                if (x < 0 || x >= rows ||
+                    y < 0 || y >= cols ||
+                    grid[x][y] == 0) {
+                    continue;
+                }
+
+                grid[x][y] = 0;
+                q.push({x, y});
+            }
+        }
+    }
+};
+```
+
+### [694. Number of Distinct Islands](https://leetcode.com/problems/number-of-distinct-islands/)
+
+```cpp
+class Solution {
+public:
+    int numDistinctIslands(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) return 0;
+
+        int rows = grid.size();
+        int cols = grid[0].size();
+        std::unordered_set<std::string> islands;
+
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                if (grid[r][c] == 1) {
+                    std::string str;
+                    dfs(grid, r, c, str, 0);
+                    islands.insert(str);
+                }
+            }
+        }
+
+        return islands.size();
+    }
+
+private:
+    void dfs(std::vector<std::vector<int>>& grid, int r, int c, std::string& str, int direction) {
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        // base case
+        if (r < 0 || r >= rows ||
+            c < 0 || c >= cols ||
+            grid[r][c] == 0) {
+            return;
+        }
+
+        grid[r][c] = 0;
+
+        str += std::to_string(direction) + ",";
+
+        dfs(grid, r - 1, c, str, 1);
+        dfs(grid, r + 1, c, str, 2);
+        dfs(grid, r, c - 1, str, 3);
+        dfs(grid, r, c + 1, str, 4);
+
+        str += std::to_string(-direction) + ",";
+    }
+};
+```
+
+### [23. Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/)
+
+```cpp
+/**
+ * Definition for singly-linked list.
+ * struct ListNode {
+ *     int val;
+ *     ListNode *next;
+ *     ListNode() : val(0), next(nullptr) {}
+ *     ListNode(int x) : val(x), next(nullptr) {}
+ *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+ * };
+ */
+class Solution {
+public:
+    ListNode* mergeKLists(vector<ListNode*>& lists) {
+        // edge case
+        if (lists.empty()) return {};
+
+        auto cmp = [](ListNode* a, ListNode* b) {
+            return a->val > b->val;
+        };
+        std::priority_queue<ListNode*, std::vector<ListNode*>, decltype(cmp)> pq;
+
+        for (auto& node : lists) {
+            while (node) {
+                pq.push(node);
+                node = node->next;
+            }
+        }
+
+        auto dummyHead = new ListNode(0);
+        auto cur = dummyHead;
+        while (!pq.empty()) {
+            auto newNode = new ListNode(pq.top()->val);
+            pq.pop();
+            cur->next = newNode;
+            cur = cur->next;
+        }
+
+        return dummyHead->next;
+    }
+};
+```
+
+### [241. Different Ways to Add Parentheses](https://leetcode.com/problems/different-ways-to-add-parentheses/)
+
+```cpp
+class Solution {
+private:
+    static inline const std::unordered_set<char> operators = {'+', '-', '*'};
+    std::unordered_map<std::string, std::vector<int>> memo;
+
+public:
+    vector<int> diffWaysToCompute(string expression) {
+        // base case
+        if (expression.empty()) return {};
+
+        if (memo.count(expression)) {
+            return memo[expression];
+        }
+
+        vector<int> res;
+
+        for (int i = 0; i < expression.size(); ++i) {
+            if (!operators.count(expression[i])) {
+                continue;
+            }
+
+            auto leftRes = diffWaysToCompute(expression.substr(0, i));
+            auto rightRes = diffWaysToCompute(expression.substr(i + 1));
+
+            for (const auto left : leftRes) {
+                for (const auto right : rightRes) {
+                    if (expression[i] == '+') {
+                        res.push_back(left + right);
+                    } else if (expression[i] == '-') {
+                        res.push_back(left - right);
+                    } else if (expression[i] == '*') {
+                        res.push_back(left * right);
+                    }
+                }
+            }
+        }
+
+        if (res.empty()) {
+            res.push_back(std::stoi(expression));
+        }
+
+        memo[expression] = res;
+
+        return res;
     }
 };
 ```
