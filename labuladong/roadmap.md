@@ -3852,6 +3852,52 @@ public:
 };
 ```
 
+```cpp
+class Solution {
+public:
+    vector<string> wordBreak(string s, vector<string>& wordDict) {
+        // edge case
+        if (s.empty() || wordDict.empty()) return {};
+
+        // dp[i] represents s(0...i-1) can be constructed by the words in dict
+        std::vector<std::vector<std::string>> dp(s.size() + 1);
+        dp[0] = {""};
+        
+        std::unordered_set<std::string> dict(wordDict.begin(), wordDict.end());
+
+        for (int i = 1; i <= s.size(); ++i) {
+            for (const auto& word : wordDict) {
+                const auto len = word.size();
+
+                if (i >= len && !dp[i - len].empty() && s.compare(i - len, len, word) == 0) {
+                    for (const auto& str : dp[i - len]) {
+                        std::string newStr;
+                        if (str.empty()) {
+                            newStr = word;
+                        } else {
+                            newStr = str + " " + word;
+                        }
+                        dp[i].push_back(newStr);
+                    }
+                }
+            }
+        }
+
+        return dp[s.size()];
+    }
+};
+
+/*
+Time Complexity: O(s.size() * wordDict.size() * dp[j].size())
+or 
+Time Complexity: O(n * l * k) where n represents s.size(), l represents wordDict.size(), k represents average combination number
+
+Space Complexity: O(s.size() * average sentence size)
+or 
+Space Complexity: O(n * m) where n represents s.size(), m represents average sentence size
+*/
+```
+
 ### [2. Add Two Numbers](https://leetcode.com/problems/add-two-numbers/)
 
 ```cpp
@@ -5197,4 +5243,658 @@ public:
         return res;
     }
 };
+```
+
+### [300. Longest Increasing Subsequence](https://leetcode.com/problems/longest-increasing-subsequence/)
+
+#### tag - TODO: LIS 二分算法需掌握
+
+#### recursive
+
+```cpp
+class Solution {
+private:
+    std::unordered_map<int, int> memo;
+
+    int lengthOfLIS(vector<int>& nums, int startIndex) {
+        if (memo.count(startIndex)) {
+            return memo[startIndex];
+        }
+
+        int res = 1;
+
+        for (int i = startIndex + 1; i < nums.size(); ++i) {
+            if (nums[i] > nums[startIndex]) {
+                res = std::max(res, 1 + lengthOfLIS(nums, i));
+            }
+        }
+
+        memo[startIndex] = res;
+        
+        return res;
+    }
+
+public:
+    int lengthOfLIS(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return 0;
+
+        int res = 1;
+        
+        for (int i = 0; i < nums.size(); ++i) {
+            res = std::max(res, lengthOfLIS(nums, i));
+        }
+
+        return res;
+    }
+};
+```
+
+#### dp[i] represents the length of LIS ending exactly with nums[i]
+
+```cpp
+class Solution {
+public:
+    int lengthOfLIS(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return 0;
+
+        int res = 0;
+        std::vector<int> dp(nums.size(), 1);
+        for (int i = 0; i < nums.size(); ++i) {
+            for (int j = 0; j < i; ++j) {
+                if (nums[i] > nums[j]) {
+                    dp[i] = std::max(dp[i], dp[j] + 1);
+                }
+            }
+            res = std::max(res, dp[i]);
+        }
+
+        return res;
+    }
+};
+```
+
+#### dp[i] represents the minimum ending value of any increasing subsequence of length i + 1
+
+```cpp
+class Solution {
+public:
+    int lengthOfLIS(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return 0;
+
+        std::vector<int> dp;
+
+        for (const auto num : nums) {
+            auto it = std::lower_bound(dp.begin(), dp.end(), num);
+            if (it == dp.end()) {
+                dp.push_back(num);
+            } else {
+                *it = num;
+            }
+        }
+
+        return dp.size();
+    }
+};
+```
+
+### [354. Russian Doll Envelopes](https://leetcode.com/problems/russian-doll-envelopes/)
+
+#### tag - std::sort 要求比较函数 comp(a,b) 必须满足严格弱序（strict weak ordering）：
+comp(a,a) 必须返回 false
+如果 comp(a,b) 为 true，则 comp(b,a) 必须为 false
+传递性规则必须成立
+
+#### tag - TODO: LIS 二分算法需掌握
+
+```cpp
+class Solution {
+public:
+    int maxEnvelopes(vector<vector<int>>& envelopes) {
+        // edge case
+        if (envelopes.empty()) return 0;
+
+        std::sort(envelopes.begin(), envelopes.end(), [](vector<int>& a, vector<int>& b) {
+            if (a.front() != b.front()) {
+                return a.front() < b.front();
+            } else {
+                return a.back() < b.back();
+            }
+        });
+
+        int res = 1;
+        vector<int> dp(envelopes.size(), 1);
+        dp[0] = 1;
+
+        for (int i = 1; i < envelopes.size(); ++i) {
+            for (int j = 0; j < i; ++j) {
+                if (envelopes[j].front() < envelopes[i].front() && envelopes[j].back() < envelopes[i].back()) {
+                    dp[i] = std::max(dp[i], dp[j] + 1);
+                }
+            }
+
+            res = std::max(res, dp[i]);
+        }
+
+        return res;
+    }
+};
+```
+
+### [931. Minimum Falling Path Sum](https://leetcode.com/problems/minimum-falling-path-sum/)
+
+```cpp
+class Solution {
+private:
+    struct PairHash {
+        template <class T1, class T2>
+        std::size_t operator () (const std::pair<T1,T2> &p) const {
+            auto h1 = std::hash<T1>{}(p.first);
+            auto h2 = std::hash<T2>{}(p.second);
+            return h1 ^ (h2 << 1);
+        }
+    };
+
+    std::unordered_map<std::pair<int, int>, int, PairHash> memo;
+
+    int dp(vector<vector<int>>& matrix, int i, int j) {
+        if (memo.count({i, j})) {
+            return memo[{i, j}];
+        }
+
+        if (i < 0 || i >= matrix.size() ||
+            j < 0 || j >= matrix[0].size()) {
+            return 1e9;
+        }
+
+        int res = 0;
+        if (i == 0) {
+            res = matrix[0][j];
+        } else {
+            res = std::min({dp(matrix, i - 1, j - 1), dp(matrix, i - 1, j), dp(matrix, i - 1, j + 1)}) + matrix[i][j];
+        }
+
+        memo[{i, j}] = res;
+
+        return res;
+    }
+
+public:
+    int minFallingPathSum(vector<vector<int>>& matrix) {
+        // edge case
+        if (matrix.empty() || matrix[0].empty()) return -10001;
+
+        int res = 1e9;
+        for (int j = 0; j < matrix[0].size(); ++j) {
+            res = std::min(res, dp(matrix, matrix.size() - 1, j));
+        }
+
+        return res;
+    }
+};
+```
+
+```cpp
+class Solution {
+public:
+    int minFallingPathSum(vector<vector<int>>& matrix) {
+        // edge case
+        if (matrix.empty() || matrix.size() != matrix[0].size()) return 0;
+
+        const int n = matrix.size();
+        std::vector<std::vector<int>> dp(n, std::vector<int>(n, 0));
+        dp[0] = matrix[0];
+
+        for (int i = 1; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                int left = (j == 0) ? 1e9 : dp[i - 1][j - 1];
+                int mid = dp[i - 1][j];
+                int right = (j == n - 1) ? 1e9 : dp[i - 1][j + 1];
+
+                dp[i][j] = matrix[i][j] + std::min({left, mid, right});
+            }
+        }
+
+        return *std::min_element(dp[n - 1].begin(), dp[n - 1].end());
+    }
+};
+
+/*
+dp[i][j] = matrix[i][j] + std::min(dp[i - 1][j - 1], dp[i - 1][j], dp[i - 1][j + 1])
+Time Complexity: O(n*n)
+Space Complexity: O(n*n) -> O(n) if change dp[i][j] to prevRow[j]
+*/
+```
+
+### [1289. Minimum Falling Path Sum II](https://leetcode.com/problems/minimum-falling-path-sum-ii/)
+
+#### tag - prevFirstMin, prevFirstMinCol, prevSecondMin
+
+```cpp
+class Solution {
+public:
+    int minFallingPathSum(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid.size() != grid[0].size()) return -1e9;
+
+        const int n = grid.size();
+
+        std::vector<int> dp = grid[0];
+
+        for (int i = 1; i < n; ++i) {
+            int prevFirstMin = 1e9;
+            int prevFirstMinCol = 1e9;
+            int prevSecondMin = 1e9;
+
+            for (int j = 0; j < n; ++j) {
+                if (dp[j] < prevFirstMin) {
+                    prevSecondMin = prevFirstMin;
+                    prevFirstMin = dp[j];
+                    prevFirstMinCol = j;
+                } else if (dp[j] < prevSecondMin) {
+                    prevSecondMin = dp[j];
+                }
+            }
+
+            for (int j = 0; j < n; ++j) {
+                int prevMin = 1e9;
+                if (j == prevFirstMinCol) {
+                    prevMin = prevSecondMin;
+                } else {
+                    prevMin = prevFirstMin;
+                }
+
+                dp[j] = grid[i][j] + prevMin;
+            }
+        }
+
+        return *std::min_element(dp.begin(), dp.end());
+    }
+};
+
+/*
+dp[i][j] = grid[i][j] + std::min(dp[i - 1][k]) where k != j
+Time Complexity: O(n*n)
+Space Complexity: O(n)
+*/
+```
+
+### [139. Word Break](https://leetcode.com/problems/word-break/)
+
+#### tag - 注意 dp[0] = true; 注意 i 的定义，for (int i = 0; i <= s.size(); ++i)
+
+```cpp
+class Solution {
+public:
+    bool wordBreak(string s, vector<string>& wordDict) {
+        // edge case
+        if (s.empty() || wordDict.empty()) return false;
+
+        // dp[i] represents if s[0:i] (left close, right open interval) can be segmented into a space-separated sequence of one or more dictionary words
+        // dp[i] = (dp[j] == true && dp[j, i] in dict)
+        std::vector<bool> dp(s.size() + 1, false);
+        dp[0] = true;
+
+        const std::unordered_set<std::string> dict(wordDict.begin(), wordDict.end());
+
+        for (int i =1; i <= s.size(); ++i) {
+            for (int j = 0; j < i; ++j) {
+                if (dp[j] && dict.count(s.substr(j, i - j))) {
+                    dp[i] = true;
+                    break;
+                }
+            }
+        }
+
+        return dp[s.size()];
+    }
+};
+
+/*
+Time Complexity: O(n*n*n)
+Space Complexity: O(n)
+*/
+```
+
+```cpp
+class Solution {
+public:
+    bool wordBreak(string s, vector<string>& wordDict) {
+        // edge case
+        if (s.empty() || wordDict.empty()) return false;
+
+        // dp[i] represents if s[0:i] (left close, right open interval) can be segmented into a space-separated sequence of one or more dictionary words
+        // dp[i] = (dp[j] == true && dp[j, i] in dict)
+        std::vector<bool> dp(s.size() + 1, false);
+        dp[0] = true;
+
+        const std::unordered_set<std::string> dict(wordDict.begin(), wordDict.end());
+
+        for (int i =1; i <= s.size(); ++i) {
+            for (const auto& word : wordDict) {
+                const auto len = word.size();
+                if (i >= len && dp[i - len] && s.compare(i - len, len, word) == 0) {
+                    dp[i] = true;
+                    break;
+                } 
+            }
+        }
+
+        return dp[s.size()];
+    }
+};
+
+/*
+Time Complexity: O(n*wordDict.size()*word.size()) where word.size() represents average word size
+Space Complexity: O(n)
+*/
+```
+
+### [72. Edit Distance](https://leetcode.com/problems/edit-distance/)
+
+#### tag - dp[i][j] represents the minimum number of operations required to convert word1[0:i] (left open, right close interval) to word2[0:j]
+
+```cpp
+class Solution {
+public:
+    int minDistance(string word1, string word2) {
+        const int m = word1.size();
+        const int n = word2.size();
+        // edge case
+        if (word1.empty()) return n;
+        if (word2.empty()) return m;
+
+        // dp[i][j] represents the minimum number of operations required to convert word1[0:i] (left open, right close interval) to word2[0:j]
+        std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+        // base case
+        for (int i = 0; i <= m; ++i) {
+            dp[i][0] = i;
+        }
+        for (int j = 0; j <= n; ++j) {
+            dp[0][j] = j;
+        }
+
+        for (int i = 1; i <= m; ++i) {
+            for (int j = 1; j <= n; ++j) {
+                if (word1[i - 1] == word2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    // insert: dp[i][j - 1] + 1
+                    // delete: dp[i - 1][j] + 1
+                    // replace: dp[i - 1][j - 1] + 1
+                    dp[i][j] = std::min({dp[i][j - 1], dp[i - 1][j], dp[i - 1][j - 1]}) + 1;
+                }
+            }
+        }
+
+        return dp[m][n];
+    }
+};
+
+/*
+Time Complexity: O(m * n)
+Space Complexity: O(m * n)
+*/
+
+// Example: "ca" -> "cat": first convert "ca" to "ca" with dp[2][2],
+// then insert 't', so the total cost is dp[i][j - 1] + 1.
+// dp[2][3] = dp[2][2] + 1;
+```
+
+### [53. Maximum Subarray](https://leetcode.com/problems/maximum-subarray/)
+
+#### tag - dp[i] represents the largest sum of a subarray ending at nums[i]
+
+```cpp
+class Solution {
+public:
+    int maxSubArray(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return -1e9;
+        if (nums.size() == 1) return nums[0];
+
+        // dp[i] represents the largest sum of a subarray ending at nums[i]
+        std::vector<int> dp(nums.size(), -1e9);
+        // base case
+        dp[0] = nums[0];
+
+        for (int i = 1; i < nums.size(); ++i) {
+            dp[i] = std::max({nums[i], dp[i - 1] + nums[i]});
+        }
+
+        return *std::max_element(dp.begin(), dp.end());
+    }
+};
+
+/*
+nums = [-2,1,-1,-3,4]
+dp = [-2,1,0,-3,4]
+dp[0] = -2
+dp[1] = 1
+dp[2] = 0
+dp[3] = -3
+dp[4] = 4
+
+dp[i] = std::max({nums[i], dp[i - 1] + nums[i]})
+*/
+
+/*
+Time Complexity: O(n), where n represents nums.size()
+Space Complexity: O(n)
+*/
+```
+
+```cpp
+class Solution {
+public:
+    int maxSubArray(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return INT_MIN;
+        if (nums.size() == 1) return nums[0];
+
+        std::vector<int> preSum(nums.size() + 1, 0);
+        for (int i = 1; i <= nums.size(); ++i) {
+            preSum[i] = preSum[i - 1] + nums[i - 1];
+        }
+
+        int res = INT_MIN;
+        int minVal = INT_MAX;
+
+        for (int i = 1; i <= nums.size(); ++i) {
+            minVal = std::min(minVal, preSum[i - 1]);
+            res = std::max(res, preSum[i] - minVal);
+        }
+
+        return res;
+    }
+};
+```
+
+### [1143. Longest Common Subsequence](https://leetcode.com/problems/longest-common-subsequence/)
+
+#### tag - dp[i][j] represents the length of the longest common subsequence between text1[0...i-1] and text2[0...j-1]
+
+```cpp
+class Solution {
+public:
+    int longestCommonSubsequence(string text1, string text2) {
+        // edge case
+        if (text1.empty() || text2.empty()) return 0;
+
+        const int m = text1.size();
+        const int n = text2.size();
+        // dp[i][j] represents the length of the longest common subsequence
+        // between text1[0...i-1] and text2[0...j-1]
+        std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+
+        for (int i = 1; i <= m; ++i) {
+            for (int j = 1; j <= n; ++j) {
+                if (text1[i - 1] == text2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = std::max(dp[i][j - 1], dp[i - 1][j]);
+                }
+            }
+        }
+
+        return dp[m][n];
+    }
+};
+
+/*
+Time Complexity: O(m*n)
+Space Complexity: O(m*n)
+*/
+
+/*
+text1 = "abcde", text2 = "ace" 
+
+text1 = "abcd", text2 = "ac" 
+if (text1[i - 1] == text2[j - 1])
+dp[4][2] = 2
+dp[5][3] = dp[4][2] + 1
+
+dp[0][0] = 0, dp[0][1] = 0, dp[0][2] = 0, dp[0][3] = 0
+dp[1][0] = 0, dp[1][1] = 1, dp[1][2] = 1, dp[1][3] = 1
+dp[2][0] = 0, dp[2][1] = 1, dp[2][2] = 1, dp[2][3] = 1
+dp[3][0] = 0, dp[3][1] = 1, dp[3][2] = 2, dp[3][3] = 2
+dp[4][0] = 0, dp[4][1] = 1, dp[4][2] = 2, dp[4][3] = 2
+dp[5][0] = 0, dp[5][1] = 1, dp[5][2] = 2, dp[5][3] = 3
+*/
+```
+
+### [583. Delete Operation for Two Strings](https://leetcode.com/problems/delete-operation-for-two-strings/)
+
+```cpp
+class Solution {
+public:
+    int minDistance(string word1, string word2) {
+        const int m = word1.size();
+        const int n = word2.size();
+        // edge case
+        if (word1.empty()) return n;
+        if (word2.empty()) return m;
+
+        // dp[i][j] represents the minimum number of steps required to make word1[0...i - 1] and word2[0...j - 1] the same
+        std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+        for (int i = 1; i <= m; ++i) {
+            dp[i][0] = i;
+        }
+        for (int j = 1; j <= n; ++j) {
+            dp[0][j] = j;
+        }
+
+        for (int i = 1; i <= m; ++i) {
+            for (int j = 1; j <= n; ++j) {
+                if (word1[i - 1] == word2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = std::min(dp[i - 1][j], dp[i][j - 1]) + 1;
+                }
+            }
+        }
+
+        return dp[m][n];
+    }
+};
+
+/*
+Time Complexity: O(m*n)
+Space Complexity: O(m*n)
+*/
+
+/*
+word1 = "", word2 = "etco"
+dp[0][4] = 4
+
+word1 = "sea", word2 = "eat"
+
+word1 = "se", word2 = "e"
+word1 = "sea", word2 = "ea"
+
+if (word1[i - 1] == word2[j - 1]) {
+    dp[i][j] = dp[i - 1][j - 1];
+} else {
+    dp[i][j] = std::min(dp[i - 1][j], dp[i][j - 1]) + 1;
+}
+*/
+```
+
+### [712. Minimum ASCII Delete Sum for Two Strings](https://leetcode.com/problems/minimum-ascii-delete-sum-for-two-strings/)
+
+```cpp
+class Solution {
+public:
+    int minimumDeleteSum(string s1, string s2) {
+        const int m = s1.size();
+        const int n = s2.size();
+
+        // dp[i][j] represents the lowest ASCII sum of deleted characters to make word1[0...i - 1] and word2[0...j - 1] equal
+        std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+        for (int i = 1; i <= m; ++i) {
+            dp[i][0] = dp[i - 1][0] + static_cast<int>(s1[i - 1]);
+        }
+        for (int j = 1; j <= n; ++j) {
+            dp[0][j] = dp[0][j - 1] + static_cast<int>(s2[j - 1]);
+        }
+
+        for (int i = 1; i <= m; ++i) {
+            for (int j = 1; j <= n; ++j) {
+                if (s1[i - 1] == s2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = std::min(dp[i - 1][j] + static_cast<int>(s1[i - 1]), dp[i][j - 1] + static_cast<int>(s2[j - 1]));
+                }
+            }
+        }
+
+        return dp[m][n];
+    }
+};
+
+/*
+Time Complexity: O(m*n)
+Space Complexity: O(m*n)
+*/
+```
+
+### [516. Longest Palindromic Subsequence](https://leetcode.com/problems/longest-palindromic-subsequence/)
+
+#### tag - dp[i][j] represents the longest palindromic subsequence's length in s[i...j]
+
+```cpp
+class Solution {
+public:
+    int longestPalindromeSubseq(string s) {
+        // edge case
+        if (s.empty()) return 0;
+
+        const int n = s.size();
+        // dp[i][j] represents the longest palindromic subsequence's length in s[i...j]
+        std::vector<std::vector<int>> dp(n, std::vector<int>(n, 0));
+        // intial dp table
+        for (int i = 0; i < n;  ++i) {
+            dp[i][i] = 1;
+        }
+
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                if (s[i] == s[j]) {
+                    dp[i][j] = dp[i + 1][j - 1] + 2;
+                } else {
+                    dp[i][j] = std::max(dp[i + 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+
+        return dp[0][n - 1];
+    }
+};
+
+/*
+Time Complexity: O(n*n)
+Space Complexity: O(n*n)
+*/
 ```
