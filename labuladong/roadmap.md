@@ -5864,6 +5864,13 @@ Space Complexity: O(m*n)
 
 #### tag - dp[i][j] represents the longest palindromic subsequence's length in s[i...j]
 
+#### tag
+
+2.1 涉及两个字符串/数组的场景，dp 数组的定义如下：
+在子数组 arr1[0..i] 和子数组 arr2[0..j] 中，我们要求的子序列长度为 dp[i][j]。
+2.2 只涉及一个字符串/数组的场景，dp 数组的定义如下：
+在子数组 array[i..j] 中，我们要求的子序列的长度为 dp[i][j]。
+
 ```cpp
 class Solution {
 public:
