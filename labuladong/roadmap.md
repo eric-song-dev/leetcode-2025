@@ -5905,3 +5905,295 @@ Time Complexity: O(n*n)
 Space Complexity: O(n*n)
 */
 ```
+
+### [1312. Minimum Insertion Steps to Make a String Palindrome](https://leetcode.com/problems/minimum-insertion-steps-to-make-a-string-palindrome/)
+
+```cpp
+class Solution {
+public:
+    int minInsertions(string s) {
+        // edge case
+        if (s.empty()) return 0;
+
+        const int n = s.size();
+        // dp[i][j] represents the minimum number of steps to make s[i...j] (left close, right close interval) palindrome
+        std::vector<std::vector<int>> dp(n, std::vector<int>(n, 0));
+        
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                if (s[i] == s[j]) {
+                    dp[i][j] = dp[i + 1][j - 1];
+                } else {
+                    dp[i][j] = std::min(dp[i + 1][j], dp[i][j - 1]) + 1;
+                }
+            }
+        }
+
+        return dp[0][n - 1];
+    }
+};
+
+/*
+Time Complexity: O(n*n)
+Space Complexity: O(n*n)
+*/
+```
+
+### [416. Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/)
+
+#### tag - 超难理解，得多做做，或者做 mock interview 理解一下
+
+```cpp
+class Solution {
+public:
+    bool canPartition(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return false;
+
+        const int n = nums.size();
+        int sum = std::accumulate(nums.begin(), nums.end(), 0);
+        if (sum % 2 != 0) return false;
+        sum /= 2;
+
+        // dp[i][j] represents whether we can select a subset nums[0...i - 1] to get a sum of j
+        std::vector<std::vector<bool>> dp(n + 1, std::vector<bool>(sum + 1, false));
+        // intial dp table
+        for (int i = 0; i <= n; ++i) {
+            dp[i][0] = true;
+        }
+
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 1; j <= sum; ++j) {
+                if (nums[i - 1] > j) {
+                    dp[i][j] = dp[i - 1][j];
+                } else {
+                    dp[i][j] = dp[i - 1][j] || dp[i - 1][j - nums[i - 1]];
+                }
+            }
+        }
+        
+        return dp[n][sum];
+    }
+};
+
+/*
+Time Complexity: O(n*sum)
+Space Complexity: O(n*sum)
+*/
+
+/*
+nums = [1,5,11,5]
+sum = 22
+*/
+```
+
+### [518. Coin Change II](https://leetcode.com/problems/coin-change-ii/)
+
+#### tag - 和上一题不一样，这一题用 dp[i][j - coins[i - 1]]，仔细思考其中的区别
+
+```cpp
+class Solution {
+public:
+    int change(int amount, vector<int>& coins) {
+        // edge case
+        if (amount < 0 || coins.empty()) return 0;
+        
+        const int n = coins.size();
+        // dp[i][j] means the number of combinations of coins[0...i - 1] that make up that j
+        std::vector<std::vector<unsigned int>> dp(n + 1, std::vector<unsigned int>(amount + 1, 0));
+        // dp table intial
+        for (int i = 0; i <= n; ++i) {
+            dp[i][0] = 1;
+        }
+
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 1; j <= amount; ++j) {
+                if (j < coins[i - 1]) {
+                    dp[i][j] = dp[i - 1][j];
+                } else {
+                    dp[i][j] = dp[i - 1][j] + dp[i][j - coins[i - 1]];
+                }
+            }
+        }
+    
+        return dp[n][amount];
+    }
+};
+
+/*
+Time Complexity: O(n*amount)
+Space Complexity: O(n*amount)
+*/
+```
+
+### [494. Target Sum](https://leetcode.com/problems/target-sum/)
+
+#### tag - 先把这题转换成找 subset 的问题，然后注意这题 j 是从 0 开始的，只要 j=0 是需要被普通状态转移处理的合法状态，并且转移过程中所有数组访问都合法、所有依赖状态都已经算好，就可以从 0 开始
+
+```cpp
+class Solution {
+public:
+    int findTargetSumWays(vector<int>& nums, int target) {
+        // edge case
+        if (nums.empty()) return 0;
+        const int sum = std::accumulate(nums.begin(), nums.end(), 0);
+        if (target > sum || target < -sum || (target + sum) % 2 != 0) return 0;
+
+        const int n = nums.size();
+        const int newTarget = (target + sum) / 2;
+
+        // dp[i][j] represents the number of different subset from nums[0...i - 1], which its sum is j
+        std::vector<std::vector<int>> dp(n + 1, std::vector<int>(newTarget + 1, 0));
+        // intial dp table
+        dp[0][0] = 1;
+
+        for (int i = 1; i <= n; ++i) {
+            // start j from 0 if dp[i][0] is a valid state that needs normal transition and all referenced states are valid and already computed
+            for (int j = 0; j <= newTarget; ++j) {
+                // dp state transition
+                if (nums[i - 1] > j) {
+                    dp[i][j] = dp[i - 1][j];
+                } else {
+                    dp[i][j] = dp[i - 1][j] + dp[i - 1][j - nums[i - 1]];
+                }
+            }
+        }
+
+        return dp[n][newTarget];
+    }
+};
+
+/*
+Time Complexity: O(n*newTarget)
+Space Complexity: O(n*newTarget)
+
+A means every  nums with symbol '+' subset of nums, B means every  nums with symbol '-' subset of nums
+sum(A) - sum(B) = target
+sum(A) = target + sum(B)
+sum(A) + sum(A) = target + sum(B) + sum(A)
+2 * sum(A) = target + sum(nums)
+sum(A) = (target + sum(nums)) / 2
+so right now the question is find a subset that its sum is (target + sum(nums)) / 2
+
+define a dp table
+dp[i][j] represents the number of different subset from nums[0...i - 1], which its sum is j
+std::vector<std::vector<int>> dp(n + 1, std::vector<int>(newTarget + 1, 0));
+
+intial dp table
+dp[0][0] = 1;
+
+dp state transition
+if (nums[i - 1] > j) {
+    dp[i][j] = dp[i - 1][j];
+} else {
+    dp[i][j] = dp[i - 1][j] + dp[i - 1][j - nums[i - 1]];
+}
+*/
+```
+
+#### recursion solution
+
+```cpp
+class Solution {
+public:
+    int findTargetSumWays(vector<int>& nums, int target) {
+        // edge case
+        if (nums.empty()) return 0;
+        const int sum = std::accumulate(nums.begin(), nums.end(), 0);
+        if (target > sum || target < -sum || (target + sum) % 2 != 0) return 0;
+
+        int res = 0;
+        backtrack(nums, target, 0, 0, res);
+
+        return res;
+    }
+
+    void backtrack(const std::vector<int>& nums, const int target, int startIndex, int sum, int& res) {
+        // collect result
+        if (startIndex == nums.size()) {
+            if (sum == target) {
+                ++res;
+            }
+            return;
+        }
+
+        // make decision of '+'
+        sum += nums[startIndex];
+
+        backtrack(nums, target, startIndex + 1, sum, res);
+
+        // cancel decision
+        sum -= nums[startIndex];
+
+        // make decision of '-'
+        sum -= nums[startIndex];
+
+        backtrack(nums, target, startIndex + 1, sum, res);
+
+        // cancel decision
+        sum += nums[startIndex];
+    }
+};
+
+/*
+Time Complexity: O(2^n), due to the number of the nodes in the binary tree, since each number has two choices '+' and '-'
+Space Complexity: O(n), due to the height of the recursion stack
+*/
+```
+
+### [64. Minimum Path Sum](https://leetcode.com/problems/minimum-path-sum/)
+
+```cpp
+class Solution {
+public:
+    int minPathSum(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) return -1;
+        
+        const int m = grid.size();
+        const int n = grid[0].size();
+
+        // dp[i][j] represents a minimal sum path from top left to bottom right, where grid[i][j] is bottom right
+        std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+
+        // intial dp table
+        dp[0][0] = grid[0][0];
+        for (int i = 1; i < m; ++i) {
+            dp[i][0] = dp[i - 1][0] + grid[i][0];
+        }
+        for (int j = 1; j < n; ++j) {
+            dp[0][j] = dp[0][j - 1] + grid[0][j];
+        }
+
+        for (int i = 1; i < m; ++i) {
+            for (int j = 1; j < n; ++j) {
+                // dp state transition
+                dp[i][j] = std::min(dp[i - 1][j], dp[i][j - 1]) + grid[i][j];
+            }
+        }
+
+        return dp[m - 1][n - 1];
+    }
+};
+
+/*
+Time Complexity: O(m*n)
+Space Complexity: O(m*n)
+
+define dp table
+dp[i][j] represents a minimal sum path from top left to bottom right, where grid[i][j] is bottom right
+std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+
+intial dp table
+dp[0][0] = grid[0][0];
+for (int i = 1; i < m; ++i) {
+    dp[i][0] = dp[i - 1][0] + grid[i - 1][0];
+}
+for (int j = 1; j < n; ++j) {
+    dp[0][j] = dp[0][j - 1] + grid[0][j - 1];
+}
+
+dp state transition
+dp[i][j] = std::min(dp[i - 1][j], dp[i][j - 1]) + grid[i][j];
+*/
+```
