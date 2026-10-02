@@ -34,6 +34,36 @@ public:
  */
 ```
 
+```cpp
+class NumArray {
+public:
+    std::vector<int> preSum;
+
+    NumArray(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return;
+
+        preSum.resize(nums.size() + 1, 0);
+        for (int i = 0; i < nums.size(); ++i) {
+            preSum[i + 1] = preSum[i] + nums[i];
+        }
+    }
+    
+    int sumRange(int left, int right) {
+        // edge case
+        if (left < 0 || right < 0 || left > right) return 0;
+
+        return preSum[right + 1] - preSum[left];
+    }
+};
+
+/**
+ * Your NumArray object will be instantiated and called as such:
+ * NumArray* obj = new NumArray(nums);
+ * int param_1 = obj->sumRange(left,right);
+ */
+```
+
 ### [304. Range Sum Query 2D - Immutable](https://leetcode.com/problems/range-sum-query-2d-immutable/)
 
 ```cpp
@@ -6195,5 +6225,205 @@ for (int j = 1; j < n; ++j) {
 
 dp state transition
 dp[i][j] = std::min(dp[i - 1][j], dp[i][j - 1]) + grid[i][j];
+*/
+```
+
+### [55. Jump Game](https://leetcode.com/problems/jump-game/)
+
+```cpp
+class Solution {
+public:
+    bool canJump(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) return false;
+
+        int maxReach = 0;
+        for (int i = 0; i < nums.size(); ++i) {
+            if (maxReach < i) return false;
+
+            maxReach = std::max(maxReach, i + nums[i]);
+
+            if (maxReach >= nums.size() - 1) return true;
+        }
+
+        return false;
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(1)
+*/
+```
+
+### [45. Jump Game II](https://leetcode.com/problems/jump-game-ii/)
+
+#### greedy
+
+```cpp
+class Solution {
+public:
+    int jump(vector<int>& nums) {
+        // edge case
+        if (nums.size() <= 1) return 0;
+
+        int maxReach = 0;
+        int currentEnd = 0;
+        int res = 0;
+
+        for (int i = 0; i < nums.size(); ++i) {
+            if (maxReach < i) return 0;
+
+            maxReach = std::max(maxReach, i + nums[i]);
+
+            if (i == currentEnd) {
+                ++res;
+                currentEnd = maxReach;
+            }
+
+            if (currentEnd >= nums.size() - 1) {
+                return res;
+            }
+        }
+
+        return 0;
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(1)
+*/
+```
+
+#### dp table
+
+```cpp
+class Solution {
+public:
+    int jump(vector<int>& nums) {
+        // edge case
+        const int n = nums.size();
+        if (n <= 1) return 0;
+
+        const int INF = 1e9;
+
+        // define dp table
+        // dp[i] represents the minimum number of jumps to reach index i
+        std::vector<int> dp(n, INF);
+
+        // initial dp table
+        dp[0] = 0;
+
+        // dp state transition
+        for (int i = 1; i < n; ++i) {
+            for (int j = i - 1; j >= 0; --j) {
+                if (j + nums[j] >= i) {
+                    dp[i] = std::min(dp[i], dp[j] + 1);
+                }
+            }
+        }
+        
+        return dp[n - 1] == INF ? 0 : dp[n - 1];
+    }
+};
+
+/*
+Time Complexity: O(n^2)
+Space Complexity: O(n)
+
+define dp table
+dp[i] represents the minimum number of jumps to reach index i
+
+initial dp table
+dp[0] = 0;
+
+dp state transition
+for (int j = i - 1; j >= 0; --j) {
+    if (j + nums[j] >= i) {
+        dp[i] = std::min(dp[i], dp[j] + 1);
+    }
+}
+*/
+```
+
+### [134. Gas Station](https://leetcode.com/problems/gas-station/)
+
+#### brute force, Time Limit Exceeded
+
+```cpp
+class Solution {
+public:
+    int canCompleteCircuit(vector<int>& gas, vector<int>& cost) {
+        // edge case
+        if (gas.empty() || cost.empty() || gas.size() != cost.size()) return -1;
+
+        const int n = gas.size();
+        
+        for (int start = 0; start < n; ++start) {
+            int tank = 0;
+            for (int step = 0; step < n; ++step) {
+                int i = (start + step) % n;
+                tank += gas[i] - cost[i];
+                if (tank < 0) {
+                    break;
+                }
+            }
+            if (tank >= 0) {
+                return start;
+            }
+        }
+
+        return -1;
+    }
+};
+
+/*
+Time Complexity: O(n^2)
+Space Complexity: O(1)
+*/
+```
+
+#### greedy
+
+```cpp
+
+```
+
+### [1701. Average Waiting Time](https://leetcode.com/problems/average-waiting-time/)
+
+```cpp
+class Solution {
+public:
+    double averageWaitingTime(vector<vector<int>>& customers) {
+        // edge case
+        if (customers.empty()) return 0;
+
+        long long totalWaitingTime = 0;
+        long long prevOrderFinishTime = 0;
+
+        for (const auto& customer : customers) {
+            int arrivalTime = customer.front();
+            int prepareTime = customer.back();
+
+            long long waitingTime = 0;
+            if (arrivalTime > prevOrderFinishTime) {
+                waitingTime = prepareTime;
+            } else {
+                waitingTime = prevOrderFinishTime + prepareTime - arrivalTime;
+            }
+            totalWaitingTime += waitingTime;
+            prevOrderFinishTime = arrivalTime + waitingTime;
+        }
+
+        double res = static_cast<double>(totalWaitingTime) / customers.size();
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n), where n is customers.size()
+Space Complexity: O(1)
 */
 ```
