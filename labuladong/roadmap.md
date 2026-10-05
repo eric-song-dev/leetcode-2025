@@ -6427,3 +6427,173 @@ Time Complexity: O(n), where n is customers.size()
 Space Complexity: O(1)
 */
 ```
+
+### [773. Sliding Puzzle](https://leetcode.com/problems/sliding-puzzle/)
+
+```cpp
+class Solution {
+public:
+    int slidingPuzzle(vector<vector<int>>& board) {
+        // edge case
+        if (board.size() != 2 || board[0].size() != 3) {
+            return -1;
+        }
+
+        std::string start;
+        for (const auto& row : board) {
+            for (const int num : row) {
+                start += std::to_string(num);
+            }
+        }
+
+        static const std::string target = "123450";
+
+        if (start == target) return 0;
+
+        // The positions that zero can swap with.
+        std::vector<std::vector<int>> neighbors = {
+            {1, 3},        // 0
+            {0, 2, 4},     // 1
+            {1, 5},        // 2
+            {0, 4},        // 3
+            {1, 3, 5},     // 4
+            {2, 4}         // 5
+        };
+
+        std::queue<std::string> q;
+        std::unordered_set<std::string> visited;
+
+        q.push(start);
+        visited.insert(start);
+
+        int steps = 0;
+
+        while (!q.empty()) {
+            int size = q.size();
+
+            for (int i = 0; i < size; ++i) {
+                std::string current = q.front();
+                q.pop();
+
+                if (current == target) {
+                    return steps;
+                }
+
+                int zeroPos = current.find('0');
+
+                for (int nextPos : neighbors[zeroPos]) {
+                    std::string next = current;
+
+                    std::swap(next[zeroPos], next[nextPos]);
+
+                    if (visited.count(next)) {
+                        continue;
+                    }
+
+                    visited.insert(next);
+                    q.push(next);
+                }
+            }
+
+            ++steps;
+        }
+
+        return -1;
+    }
+};
+```
+
+### [752. Open the Lock](https://leetcode.com/problems/open-the-lock/)
+
+```cpp
+class Solution {
+public:
+    int openLock(vector<string>& deadends, string target) {
+        // edge case
+        if (target.size() != 4) {
+            return -1;
+        }
+
+        std::string start = "0000";
+
+        std::queue<std::string> q;
+        std::unordered_set<std::string> visited;
+        q.push(start);
+        visited.insert(start);
+
+        std::unordered_set<std::string> deadendsSet(deadends.begin(), deadends.end());
+        if (deadendsSet.count(start)) {
+            return -1;
+        }
+
+        int steps = 0;
+
+        while (!q.empty()) {
+            int size = q.size();
+
+            for (int i = 0; i < size; ++i) {
+                auto current = q.front();
+                q.pop();
+
+                if (current == target) {
+                    return steps;
+                }
+
+                // current has 8 options
+                auto options = generateAllOptions(current);
+
+                for (const auto& next : options) {
+                    if (visited.count(next)) {
+                        continue;
+                    }
+
+                    if (deadendsSet.count(next)) {
+                        continue;
+                    }
+
+                    visited.insert(next);
+                    q.push(next);
+                }
+            }
+
+            ++steps;
+        }
+
+        return -1;
+    }
+
+private:
+    std::vector<std::string> generateAllOptions(const std::string& current) {
+        std::vector<std::string> options;
+
+        for (int i = 0; i < current.size(); ++i) {
+            char ch = current[i];
+            char up;
+            char down;
+            if (ch == '0') {
+                up = '1';
+                down = '9';
+            } else if (ch == '9') {
+                up = '0';
+                down = '8';
+            } else {
+                up = ch + 1;
+                down = ch - 1;
+            }
+
+            std::string option = current;
+            option.replace(i, 1, 1, up);
+            options.push_back(option);
+            option.replace(i, 1, 1, down);
+            options.push_back(option);
+        }
+
+        return options;
+    }
+};
+
+/*
+Time Complexity: O(10^4 * 8 * 4) = O(10^4), where 8 * 4 to generateAllOptions
+Space Complexity: O(10^4)
+*/
+```
