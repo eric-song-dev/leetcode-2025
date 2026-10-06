@@ -6741,3 +6741,93 @@ public:
     }
 };
 ```
+
+### [841. Keys and Rooms](https://leetcode.com/problems/keys-and-rooms/)
+
+```cpp
+class Solution {
+public:
+    bool canVisitAllRooms(vector<vector<int>>& rooms) {
+        // edge case
+        if (rooms.empty()) return false;
+        else if (rooms.size() == 1) return true;
+
+        std::queue<int> q;
+        std::vector<bool> visited(rooms.size(), false);
+        q.push(0);
+        visited[0] = true;
+
+        while (!q.empty()) {
+            auto size = q.size();
+
+            while (size--) {
+                auto current = q.front();
+                q.pop();
+
+                for (const auto room : rooms[current]) {
+                    if (visited[room]) {
+                        continue;
+                    }
+
+                    q.push(room);
+                    visited[room] = true;
+                }
+            }
+        }
+
+        for (const auto isVisited : visited) {
+            if (!isVisited) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+```
+
+### [1306. Jump Game III](https://leetcode.com/problems/jump-game-iii/)
+
+```cpp
+class Solution {
+public:
+    bool canReach(vector<int>& arr, int start) {
+        // edge case
+        if (arr.empty() || start < 0 || start >= arr.size()) return false;
+
+        if (arr[start] == 0) return true;
+
+        std::queue<int> q;
+        std::unordered_set<int> visited;
+        q.push(start);
+        visited.insert(start);
+
+        while (!q.empty()) {
+            auto current = q.front();
+            q.pop();
+
+            for (const auto option : {current - arr[current], current + arr[current]}) {
+                if (option < 0 || option >= arr.size()) {
+                    continue;
+                }
+
+                if (visited.count(option)) {
+                    continue;
+                }
+
+                if (arr[option] == 0) return true;
+
+                q.push(option);
+                visited.insert(option);
+            }
+        }
+
+        return false;
+    }
+};
+
+/*
+Time Complexity: O(n), where n is arr.size()
+Space Complexity: O(n), where n is arr.size()
+*/
+```
