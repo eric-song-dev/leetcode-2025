@@ -6597,3 +6597,147 @@ Time Complexity: O(10^4 * 8 * 4) = O(10^4), where 8 * 4 to generateAllOptions
 Space Complexity: O(10^4)
 */
 ```
+
+### [919. Complete Binary Tree Inserter](https://leetcode.com/problems/complete-binary-tree-inserter/)
+
+```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class CBTInserter {
+private:
+    TreeNode* root;
+    std::queue<TreeNode*> q;
+
+public:
+    CBTInserter(TreeNode* root) {
+        this->root = root;
+
+        // bfs: put all nodes that don't have two children into q
+        std::queue<TreeNode*> bfs;
+        bfs.push(root);
+
+        while (!bfs.empty()) {
+            TreeNode* node = bfs.front();
+            bfs.pop();
+
+            if (node->left) {
+                bfs.push(node->left);
+            }
+
+            if (node->right) {
+                bfs.push(node->right);
+            }
+
+            if (!node->left || !node->right) {
+                q.push(node);
+            }
+        }
+    }
+    
+    int insert(int val) {
+        auto parent = q.front();
+        auto newNode = new TreeNode(val);
+
+        if (!parent->left) {
+            parent->left = newNode;
+        } else if (!parent->right) {
+            parent->right = newNode;
+
+            q.pop();
+        }
+
+        q.push(newNode);
+        return parent->val;
+    }
+    
+    TreeNode* get_root() {
+        return root;
+    }
+};
+
+/**
+ * Your CBTInserter object will be instantiated and called as such:
+ * CBTInserter* obj = new CBTInserter(root);
+ * int param_1 = obj->insert(val);
+ * TreeNode* param_2 = obj->get_root();
+ */
+```
+
+### [310. Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/)
+
+#### TLE
+
+```cpp
+class Solution {
+public:
+    vector<int> findMinHeightTrees(int n, vector<vector<int>>& edges) {
+        // edge case
+        if (n < 1) return {};
+        else if (edges.size() != n - 1) return {};
+        else if (n == 1 && edges.empty()) return {0};
+
+        std::vector<std::vector<int>> graph(n);
+        for (const auto& edge : edges) {
+            int k = edge.front();
+            int v = edge.back();
+
+            graph[k].push_back(v);
+            graph[v].push_back(k);
+        }
+
+        std::unordered_map<int, int> steps; // key: index, value: step
+        int minStep = INT_MAX;
+
+        for (int i = 0; i < n; ++i) {
+            std::queue<int> q;
+            std::unordered_set<int> visited;
+            q.push(i);
+            visited.insert(i);
+
+            int step = -1;
+
+            while (!q.empty()) {
+                int size = q.size();
+
+                while (size--) {
+                    auto current = q.front();
+                    q.pop();
+
+                    for (const auto& node : graph[current]) {
+                        if (visited.count(node)) {
+                            continue;
+                        }
+
+                        visited.insert(node);
+                        q.push(node);
+                    }
+                }
+
+                ++step;
+            }
+
+            minStep = std::min(minStep, step);
+            steps[i] = step;
+        }
+
+        std::vector<int> res;
+
+        for (int i = 0; i < n; ++i) {
+            if (steps[i] == minStep) {
+                res.push_back(i);
+            }
+        }
+
+        return res;
+    }
+};
+```
