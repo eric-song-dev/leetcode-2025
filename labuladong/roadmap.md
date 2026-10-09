@@ -6742,6 +6742,66 @@ public:
 };
 ```
 
+#### tag - 很好的练习图的概念的题，得多看看这道题
+
+```cpp
+class Solution {
+public:
+    vector<int> findMinHeightTrees(int n, vector<vector<int>>& edges) {
+        // edge case
+        if (n < 1) return {};
+        else if (edges.size() != n - 1) return {};
+        else if (n == 1 && edges.empty()) return {0};
+
+        std::vector<std::vector<int>> graph(n);
+        std::vector<int> degree(n, 0);
+        for (const auto& edge : edges) {
+            int k = edge.front();
+            int v = edge.back();
+
+            graph[k].push_back(v);
+            graph[v].push_back(k);
+
+            degree[k]++;
+            degree[v]++;
+        }
+
+        std::queue<int> leaves;
+        for (int i = 0; i < degree.size(); ++i) {
+            if (degree[i] == 1) {
+                leaves.push(i);
+            }
+        }
+
+        int remainingNodes = n;
+        while (remainingNodes > 2) {
+            int leavesSize = leaves.size();
+            remainingNodes -= leavesSize;
+
+            while (leavesSize--) {
+                auto current = leaves.front();
+                leaves.pop();
+
+                for (const auto neighbor : graph[current]) {
+                    --degree[neighbor];
+                    if (degree[neighbor] == 1) {
+                        leaves.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        std::vector<int> res;
+        while (!leaves.empty()) {
+            res.push_back(leaves.front());
+            leaves.pop();
+        }
+
+        return res;
+    }
+};
+```
+
 ### [841. Keys and Rooms](https://leetcode.com/problems/keys-and-rooms/)
 
 ```cpp
