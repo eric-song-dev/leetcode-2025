@@ -6831,3 +6831,264 @@ Time Complexity: O(n), where n is arr.size()
 Space Complexity: O(n), where n is arr.size()
 */
 ```
+
+### [433. Minimum Genetic Mutation](https://leetcode.com/problems/minimum-genetic-mutation/)
+
+#### normal version
+
+```cpp
+class Solution {
+public:
+    int minMutation(string startGene, string endGene, vector<string>& bank) {
+        // edge case
+        if (startGene.size() != 8 || endGene.size() != 8) return -1;
+        else if (startGene == endGene) return 0;
+
+        std::unordered_set<std::string> valid(bank.begin(), bank.end());
+        std::queue<std::string> q;
+        std::unordered_set<std::string> visited;
+        q.push(startGene);
+        visited.insert(startGene);
+
+        int steps = 0;
+
+        while (!q.empty()) {
+            auto size = q.size();
+
+            while (size--) {
+                auto current = q.front();
+                q.pop();
+
+                auto options = generateAllOptions(current, valid);
+                for (const auto& option : options) {
+                    if (visited.count(option)) {
+                        continue;
+                    }
+                    
+                    if (option == endGene) {
+                        return ++steps;
+                    }
+                    
+                    q.push(option);
+                    visited.insert(option);
+                }
+            }
+
+            ++steps;
+        }
+
+        return -1;
+    }
+
+private:
+    std::vector<std::string> generateAllOptions(const std::string& gene, const std::unordered_set<std::string>& valid) {
+        std::vector<std::string> options;
+
+        for (int i = 0; i < gene.size(); ++i) {
+            std::vector<char> choices = {'A', 'C', 'G', 'T'};
+            for (const auto choice : choices) {
+                if (choice == gene[i]) {
+                    continue;
+                }
+                std::string option = gene;
+                option.replace(i, 1, 1, choice);
+                if (!valid.count(option)) {
+                    continue;
+                }
+                options.push_back(option);
+            }
+        }
+
+        return options;
+    }
+};
+
+/*
+N: Number of genes in bank
+L: Length of each gene (8)
+K: Number of possible characters (4)
+
+Time Complexity: O(N * K * L^2)
+- BFS processes each gene at most once due to the visited set.
+- generateAllOptions takes O(K * L^2) time per gene.
+- Since L = 8 and K = 4 are constants, the overall
+  time complexity simplifies to O(N).
+
+Space Complexity: O(N * L + K * L^2)
+- valid, queue, and visited each require O(N * L) space.
+- generateAllOptions requires O(K * L^2) temporary space.
+- Since L and K are constants, the overall
+  space complexity simplifies to O(N).
+*/
+```
+
+#### better version
+
+```cpp
+class Solution {
+public:
+    int minMutation(string startGene, string endGene, vector<string>& bank) {
+        // edge case
+        if (startGene.size() != 8 || endGene.size() != 8) return -1;
+        else if (startGene == endGene) return 0;
+
+        std::unordered_set<std::string> valid(bank.begin(), bank.end());
+        std::queue<std::string> q;
+        q.push(startGene);
+        valid.erase(startGene);
+
+        int steps = 0;
+
+        while (!q.empty()) {
+            auto size = q.size();
+
+            while (size--) {
+                auto current = q.front();
+                q.pop();
+
+                std::vector<char> choices = {'A', 'C', 'G', 'T'};
+                for (int i = 0; i < 8; ++i) {
+                    auto origin = current[i];
+
+                    for (const auto choice : choices) {
+                        if (current[i] == choice) {
+                            continue;
+                        }
+
+                        current[i] = choice;
+
+                        if (!valid.count(current)) {
+                            continue;
+                        }
+
+                        if (current == endGene) {
+                            return ++steps;
+                        }
+
+                        q.push(current);
+                        valid.erase(current);
+                    }
+
+                    current[i] = origin;
+                }
+            }
+
+            ++steps;
+        }
+
+        return -1;
+    }
+};
+
+/*
+N: Number of genes in bank
+L: Length of each gene (8)
+K: Number of possible characters (4)
+
+Time Complexity: O(N * K * L^2)
+- BFS processes each gene at most once because visited genes
+  are immediately removed from the valid set.
+- For each gene, we try K possible characters at L positions.
+- Each unordered_set lookup and removal takes O(L) average
+  time due to string hashing.
+- Therefore, processing each gene takes O(K * L^2).
+- Since L = 8 and K = 4 are constants, the overall
+  time complexity simplifies to O(N).
+
+Space Complexity: O(N * L + K)
+- The valid set stores at most N genes, each of length L.
+- The BFS queue stores at most O(N) genes, each of length L.
+- The choices vector requires O(K) additional space.
+- No separate visited set or neighbor list is needed.
+- Since L and K are constants, the overall
+  space complexity simplifies to O(N).
+*/
+```
+
+### [1926. Nearest Exit from Entrance in Maze](https://leetcode.com/problems/nearest-exit-from-entrance-in-maze/)
+
+```cpp
+class Solution {
+public:
+    int nearestExit(vector<vector<char>>& maze, vector<int>& entrance) {
+        // edge case
+        if (maze.empty() || maze[0].empty() || entrance.size() != 2) {
+            return -1;
+        }
+
+        const auto m = maze.size();
+        const auto n = maze[0].size();
+        const auto startRow = entrance.front();
+        const auto startCol = entrance.back();
+        if (startRow < 0 || startRow >= m || 
+            startCol < 0 || startCol >= n || 
+            maze[startRow][startCol] == '+') {
+            return -1;
+        }
+
+        std::queue<std::pair<int, int>> q;
+        std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
+        q.push({startRow, startCol});
+        visited[startRow][startCol] = true;
+
+        int steps = 0;
+
+        while (!q.empty()) {
+            auto size = q.size();
+
+            while (size--) {
+                auto current = q.front();
+                q.pop();
+
+                auto options = generateAllOptions(maze, current);
+                for (const auto& option : options) {
+                    if (visited[option.first][option.second]) {
+                        continue;
+                    }
+
+                    if (option.first == 0 || option.first == (m - 1) || 
+                        option.second == 0 || option.second == (n - 1)) {
+                        return ++steps;
+                    }
+
+                    q.push(option);
+                    visited[option.first][option.second] = true;
+                }
+            }
+
+            ++steps;
+        }
+
+        return -1;
+    }
+
+private:
+    std::vector<std::pair<int, int>> generateAllOptions(const std::vector<std::vector<char>>& maze, const std::pair<int, int>& current) {
+        std::vector<std::pair<int, int>> options;
+
+        std::vector<std::pair<int, int>> directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
+        const auto m = maze.size();
+        const auto n = maze[0].size();
+        for (const auto direction : directions) {
+            std::pair<int, int> option = {current.first + direction.first, current.second + direction.second};
+            if (option.first < 0 || option.first >= m || 
+                option.second < 0 || option.second >= n || 
+                maze[option.first][option.second] == '+') {
+                continue;
+            }
+            options.push_back(option);
+        }
+
+        return options;
+    }
+};
+
+/*
+while (!q.empty()) needs to traverse m*n cells
+K: 4 directions
+
+Time Complexity: O(m * n * K)
+Space Complexity: O(m * n)
+*/
+```
