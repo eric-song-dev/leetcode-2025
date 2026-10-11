@@ -7378,3 +7378,267 @@ Time Complexity: O(n * n * n)
 Space Complexity: O(n * n)
 */
 ```
+
+### [542. 01 Matrix](https://leetcode.com/problems/01-matrix/)
+
+#### TLE
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> updateMatrix(vector<vector<int>>& mat) {
+        // edge case
+        if (mat.empty() || mat[0].empty()) return {};
+
+        const int m = mat.size();
+        const int n = mat[0].size();
+        static const std::vector<std::pair<int, int>> directions = {
+            {0, 1}, {0, -1}, {1, 0}, {-1, 0}
+        };
+
+        std::vector<std::vector<int>> res(m, std::vector<int>(n, 0));
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (mat[i][j] == 0) {
+                    continue;
+                }
+
+                std::queue<std::pair<int, int>> q;
+                std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
+                q.push({i, j});
+                visited[i][j] = true;
+
+                int distance = 0;
+
+                while (!q.empty()) {
+                    auto size = q.size();
+
+                    while (size--) {
+                        auto current = q.front();
+                        q.pop();
+
+                        for (const auto& direction : directions) {
+                            std::pair<int, int> next = {current.first + direction.first, current.second + direction.second};
+
+                            if (next.first < 0 || next.first >= m || next.second < 0 || next.second >= n) {
+                                continue;
+                            }
+
+                            if (visited[next.first][next.second]) {
+                                continue;
+                            }
+
+                            if (mat[next.first][next.second] == 0) {
+                                ++distance;
+                                res[i][j] = distance;
+                                break;
+                            }
+
+                            q.push({next.first, next.second});
+                            visited[next.first][next.second] = true;
+                        }
+
+                        if (res[i][j] > 0) {
+                            break;
+                        }
+                    }
+
+                    if (res[i][j] > 0) {
+                        break;
+                    }
+
+                    ++distance;
+                }
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(m * n * m * n * 4) = O(m * n * m * n)
+Space Complexity: O(m * n)
+*/
+```
+
+#### tag - 不要从每个 1 出发寻找最近的 0，而是从所有 0 同时出发，多源广度优先搜索 (Multi-Source BFS)
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> updateMatrix(vector<vector<int>>& mat) {
+        // edge case
+        if (mat.empty() || mat[0].empty()) return {};
+
+        const int m = mat.size();
+        const int n = mat[0].size();
+        static const std::vector<std::pair<int, int>> directions = {
+            {0, 1}, {0, -1}, {1, 0}, {-1, 0}
+        };
+
+        std::vector<std::vector<int>> res(m, std::vector<int>(n, 0));
+        std::queue<std::pair<int, int>> q;
+        std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
+        int remainingNode = m * n;
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (mat[i][j] == 0) {
+                    q.push({i, j});
+                    visited[i][j] = true;
+                    --remainingNode;
+
+                    if (remainingNode == 0) {
+                        return res;
+                    }
+                }
+            }
+        }
+
+        int distance = 1;
+        while (!q.empty()) {
+            auto size = q.size();
+
+            while (size--) {
+                auto current = q.front();
+                q.pop();
+
+                for (const auto& direction : directions) {
+                    std::pair<int, int> next = {current.first + direction.first, current.second + direction.second};
+
+                    if (next.first < 0 || next.first >= m || next.second < 0 || next.second >= n) {
+                        continue;
+                    }
+
+                    if (visited[next.first][next.second]) {
+                        continue;
+                    }
+
+                    q.push({next.first, next.second});
+                    visited[next.first][next.second] = true;
+
+                    res[next.first][next.second] = distance;
+                    --remainingNode;
+
+                    if (remainingNode == 0) {
+                        return res;
+                    }
+                }
+            }
+
+            ++distance;
+        }
+
+        return {};
+    }
+};
+
+/*
+Time Complexity: O (m * n * 4) = O (m * n)
+Space Complexity: O(m * n)
+*/
+```
+
+### [417. Pacific Atlantic Water Flow](https://leetcode.com/problems/pacific-atlantic-water-flow/)
+
+#### tag - Multi-source BFS + Reverse BFS（多源 BFS + 反向 BFS）
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> pacificAtlantic(vector<vector<int>>& heights) {
+        // edge case
+        if (heights.empty() || heights[0].empty()) {
+            return {};
+        }
+
+        const int m = heights.size();
+        const int n = heights[0].size();
+
+        std::vector<std::vector<int>> res;
+        std::vector<std::vector<bool>> intoPacific = bfs(heights, true);
+        std::vector<std::vector<bool>> intoAtlantic = bfs(heights, false);
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (intoPacific[i][j] && intoAtlantic[i][j]) {
+                    res.push_back({i, j});
+                }
+            }
+        }
+        
+        return res;
+    }
+
+private:
+    std::vector<std::vector<bool>> bfs(const vector<vector<int>>& heights, bool isPacific) {
+        const int m = heights.size();
+        const int n = heights[0].size();
+
+        std::queue<std::pair<int, int>> q;
+        std::vector<std::vector<bool>> res(m, std::vector<bool>(n, false));
+
+        if (isPacific) {
+            for (int i = 0; i < m; ++i) {
+                q.push({i, 0});
+                res[i][0] = true;
+            }
+
+            for (int i = 0; i < n; ++i) {
+                q.push({0, i});
+                res[0][i] = true;
+            }
+        } else {
+            for (int i = 0; i < m; ++i) {
+                q.push({i, n - 1});
+                res[i][n - 1] = true;
+            }
+
+            for (int i = 0; i < n; ++i) {
+                q.push({m - 1, i});
+                res[m - 1][i] = true;
+            }
+        }
+
+        static const std::vector<std::pair<int, int>> directions = {
+            {0, 1}, {0, -1}, {1, 0}, {-1, 0}
+        };
+
+        while (!q.empty()) {
+            auto size = q.size();
+
+            while (size--) {
+                auto current = q.front();
+                q.pop();
+
+                for (const auto& direction : directions) {
+                    std::pair<int, int> next = {current.first + direction.first, current.second + direction.second};
+
+                    if (next.first < 0 || next.first >= m || next.second < 0 || next.second >= n) {
+                        continue;
+                    }
+
+                    if (res[next.first][next.second]) {
+                        continue;
+                    }
+
+                    if (heights[next.first][next.second] < heights[current.first][current.second]) {
+                        continue;
+                    }
+
+                    q.push(next);
+                    res[next.first][next.second] = true;
+                }
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(m * n * 4) = O(m * n)
+Space Complexity: O(m * n)
+*/
+```
