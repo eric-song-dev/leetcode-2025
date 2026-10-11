@@ -7152,3 +7152,229 @@ Time Complexity: O(m * n * K)
 Space Complexity: O(m * n)
 */
 ```
+
+### [1091. Shortest Path in Binary Matrix](https://leetcode.com/problems/shortest-path-in-binary-matrix/)
+
+#### tag - 相较于前面的代码，这题直接检查 current 比较好，因为有可能第一个 current 就是返回点，或者在 探索邻居节点（push 时） 一发现邻居是 (n-1, n-1)，就可以立刻 return path + 1; 终止！这能直接少走整整一层的 BFS 遍历。注意：只需额外在开头单独特判一下起点是否就是终点（即 $N=1$ 的情况）即可
+
+```cpp
+class Solution {
+public:
+    int shortestPathBinaryMatrix(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid.size() != grid[0].size() || grid[0][0] == 1) {
+            return -1;
+        }
+
+        const int n = grid.size();
+        int path = 1;
+
+        if (n == 1) {
+            return path;
+        }
+
+        std::queue<std::pair<int, int>> q;
+        q.push({0, 0});
+        grid[0][0] = 1;
+        
+        while (!q.empty()) {
+            auto size = q.size();
+
+            while (size--) {
+                auto current = q.front();
+                q.pop();
+
+                static const std::vector<std::pair<int, int>> directions = {
+                    {0, 1}, {0, -1}, {1, 0}, {-1, 0},
+                    {1, 1}, {1, -1}, {-1, 1}, {-1, -1},
+                };
+
+                for (const auto& direction : directions) {
+                    std::pair<int, int> next = {current.first + direction.first, current.second + direction.second};
+
+                    if (next.first < 0 || next.first >= n || next.second < 0 || next.second >= n) {
+                        continue;
+                    }
+
+                    if (grid[next.first][next.second] == 1) {
+                        continue;
+                    }
+
+                    if (next.first == (n - 1) && next.second == (n - 1)) {
+                        return ++path;
+                    }
+
+                    q.push(next);
+                    grid[next.first][next.second] = 1;
+                }
+            }
+
+            ++path;
+        }
+
+        return -1;
+    }
+};
+
+/*
+Time Complexity: O(n*n*8) = O(n*n)
+Space Complexity: O(n*n)
+*/
+```
+
+### [994. Rotting Oranges](https://leetcode.com/problems/rotting-oranges/)
+
+#### tag - 多源广度优先搜索 (Multi-Source BFS)，多源点起点注入 (Multi-Source Injection)
+
+```cpp
+class Solution {
+public:
+    int orangesRotting(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) {
+            return -1;
+        }
+
+        const int m = grid.size();
+        const int n = grid[0].size();
+
+        std::queue<std::pair<int, int>> q;
+
+        for (int i = 0; i < m; ++i) {
+            for(int j = 0; j < n; ++j) {
+                if (grid[i][j] == 2) {
+                    q.push({i, j});
+                }
+            }
+        }
+
+        static const std::vector<std::pair<int, int>> directions = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+        };
+
+        int minutes = 0;
+
+        while (!q.empty()) {
+            auto size = q.size();
+            bool isNewRotten = false;
+
+            while (size--) {
+                auto current = q.front();
+                q.pop();
+
+                for (const auto& direction : directions) {
+                    std::pair<int, int> next = {current.first + direction.first, current.second + direction.second};
+
+                    if (next.first < 0 || next.first >= m || next.second < 0 || next.second >= n) {
+                        continue;
+                    }
+
+                    if (grid[next.first][next.second] == 0 || grid[next.first][next.second] == 2) {
+                        continue;
+                    }
+
+                    isNewRotten = true;
+
+                    q.push(next);
+                    grid[next.first][next.second] = 2;
+                }
+            }
+
+            if (isNewRotten) {
+                ++minutes;
+            }
+        }
+
+        for (int i = 0; i < m; ++i) {
+            for(int j = 0; j < n; ++j) {
+                if (grid[i][j] == 1) {
+                    return -1;
+                }
+            }
+        }
+
+        return minutes;
+    }
+};
+
+/*
+Time Complexity: O(m*n*4) = O(m*n)
+Space Complexity: O(m*n)
+*/
+```
+
+### [2101. Detonate the Maximum Bombs](https://leetcode.com/problems/detonate-the-maximum-bombs/)
+
+#### tag - 这题的 Time Complexity 是 O(n * n * n)，因为需要从每个 bomb 出发检测
+
+```cpp
+class Solution {
+public:
+    int maximumDetonation(vector<vector<int>>& bombs) {
+        // edge case
+        if (bombs.empty() || bombs[0].size() != 3) {
+            return -1;
+        }
+
+        const int n = bombs.size();
+
+        // build a directed graph
+        std::vector<std::vector<int>> graph(n);    
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (i == j) {
+                    continue;
+                }
+
+                long long dx = (long long)bombs[i][0] - bombs[j][0];
+                long long dy = (long long)bombs[i][1] - bombs[j][1];
+                long long r = bombs[i][2];
+
+                if (dx * dx + dy * dy > r * r) {
+                    continue;
+                }
+
+                graph[i].push_back(j);
+            }
+        }
+
+        int res = 0;
+
+        for (int i = 0; i < graph.size(); ++i) {
+            int bombsNum = 0;
+            std::queue<int> q;
+            std::vector<bool> visited(n, false);
+            q.push(i);
+            visited[i] = true;
+
+            while (!q.empty()) {
+                auto size = q.size();
+                bombsNum += size;
+
+                while (size--) {
+                    auto current = q.front();
+                    q.pop();
+
+                    for (const auto next : graph[current]) {
+                        if (visited[next]) {
+                            continue;
+                        }
+
+                        q.push(next);
+                        visited[next] = true;
+                    }
+                }
+            }
+
+            res = std::max(res, bombsNum);
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * n * n)
+Space Complexity: O(n * n)
+*/
+```
