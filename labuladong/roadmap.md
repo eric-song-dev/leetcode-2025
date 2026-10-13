@@ -7716,3 +7716,157 @@ private:
     }
 };
 ```
+
+### [721. Accounts Merge](https://leetcode.com/problems/accounts-merge/)
+
+#### use unordered_multimap, Memory Limit Exceeded
+
+```cpp
+class Solution {
+public:
+    vector<vector<string>> accountsMerge(vector<vector<string>>& accounts) {
+        // edge case
+        if (accounts.empty()) {
+            return {};
+        }
+
+        std::unordered_multimap<std::string, std::vector<std::string>> name2EmailsMap;
+
+        for (const auto& account : accounts) {
+            if (account.size() < 2) {
+                continue;
+            }
+
+            const auto& name = account.front();
+            std::vector<std::string> emails(account.begin() + 1, account.end());
+            std::sort(emails.begin(), emails.end());
+            emails.erase(std::unique(emails.begin(), emails.end()), emails.end());
+
+            if (name2EmailsMap.count(name)) {
+                auto [first, last] = name2EmailsMap.equal_range(name);
+                for (auto it = first; it != last;) {
+                    auto item = *it;
+                    auto prevEmails = item.second;
+                    std::vector<std::string> intersection;
+                    std::set_intersection(prevEmails.begin(), prevEmails.end(), 
+                                          emails.begin(), emails.end(), 
+                                          std::back_inserter(intersection));
+
+                    if (!intersection.empty()) {
+                        std::vector<std::string> unionEmails;
+                        std::set_union(prevEmails.begin(), prevEmails.end(), 
+                                       emails.begin(), emails.end(), 
+                                       std::back_inserter(unionEmails));
+
+                        std::sort(unionEmails.begin(), unionEmails.end());
+                        emails = unionEmails;
+
+                        it = name2EmailsMap.erase(it);
+                    } else {
+                        ++it;
+                    }
+                }
+                
+                name2EmailsMap.insert({name, emails});
+            } else {
+                name2EmailsMap.insert({name, emails});
+            }
+        }
+
+        std::vector<std::vector<string>> res;
+        for (const auto& item : name2EmailsMap) {
+            const auto& name = item.first;
+            std::vector<std::string> emails = item.second;
+
+            std::vector<string> record;
+            record.push_back(name);
+            record.insert(record.end(), emails.begin(), emails.end());
+
+            res.push_back(record);
+        }
+
+        return res;
+    }
+};
+```
+
+#### tag - 典型的 Connected Components（连通分量）问题，尤其是如何构建 graph，需要熟悉下图的各种性质
+
+```cpp
+class Solution {
+public:
+    vector<vector<string>> accountsMerge(vector<vector<string>>& accounts) {
+        // edge case
+        if (accounts.empty()) {
+            return {};
+        }
+
+        std::unordered_map<std::string, std::vector<std::string>> graph; // key: first email, value: other emails that connect with this email
+        std::unordered_map<std::string, std::string> email2NameMap;
+
+        for (const auto& account : accounts) {
+            if (account.empty()) {
+                continue;
+            }
+
+            const auto& name = account[0];
+            const auto& firstEmail = account[1];
+
+            for (int i = 1; i < account.size(); ++i) {
+                const auto& email = account[i];
+                graph[email];
+                email2NameMap[email] = name;
+
+                if (i > 1) {
+                    graph[firstEmail].push_back(email);
+                    graph[email].push_back(firstEmail);
+                }
+            }
+        }
+
+        std::vector<std::vector<std::string>> res;
+        std::unordered_set<std::string> visited;
+
+        for (const auto& [email, neighbors] : graph) {
+            if (visited.count(email)) {
+                continue;
+            }
+
+            std::vector<std::string> emails;
+            std::queue<std::string> q;
+
+            emails.push_back(email);
+            q.push(email);
+            visited.insert(email);
+
+            while (!q.empty()) {
+                auto size = q.size();
+
+                while (size--) {
+                    auto current = q.front();
+                    q.pop();
+
+                    for (const auto& neighbor : graph[current]) {
+                        if (visited.count(neighbor)) {
+                            continue;
+                        }
+
+                        emails.push_back(neighbor);
+                        q.push(neighbor);
+                        visited.insert(neighbor);
+                    }
+                }
+            }
+
+            std::sort(emails.begin(), emails.end());
+
+            std::vector<std::string> account;
+            account.push_back(email2NameMap[email]);
+            account.insert(account.end(), emails.begin(), emails.end());
+            res.push_back(account);
+        }
+
+        return res;
+    }
+};
+```
