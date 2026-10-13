@@ -7642,3 +7642,77 @@ Time Complexity: O(m * n * 4) = O(m * n)
 Space Complexity: O(m * n)
 */
 ```
+
+### [2850. Minimum Moves to Spread Stones Over Grid](https://leetcode.com/problems/minimum-moves-to-spread-stones-over-grid/)
+
+#### tag - 很难，但考的 companies 不多
+
+```cpp
+class Solution {
+private:
+    int minMove = INT_MAX;
+    int move = 0;
+    int emptyCount = 0;
+
+public:
+    int minimumMoves(vector<vector<int>>& grid) {
+        vector<pair<int, int>> redundant;
+        vector<pair<int, int>> empty;
+
+        int m = grid.size(), n = grid[0].size();
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] > 1) {
+                    redundant.push_back({i, j});
+                } else if (grid[i][j] == 0) {
+                    empty.push_back({i, j});
+                    emptyCount++;
+                }
+            }
+        }
+
+        backtrack(grid, redundant, empty);
+
+        return minMove;
+    }
+
+private:
+    void backtrack(vector<vector<int>>& grid, vector<pair<int, int>>& redundant, vector<pair<int, int>>& empty) {
+        // collect result
+        if (emptyCount == 0) {
+            minMove = std::min(minMove, move);
+            return;
+        }
+
+        for (auto r : redundant) {
+            int srcX = r.first, srcY = r.second;
+            if (grid[srcX][srcY] == 1) {
+                continue;
+            }
+
+            for (auto e : empty) {
+                int destX = e.first, destY = e.second;
+                if (grid[destX][destY] != 0) {
+                    continue;
+                }
+
+                int step = std::abs(srcX - destX) + std::abs(srcY - destY);
+                
+                // make decision
+                grid[destX][destY] = 1;
+                grid[srcX][srcY]--;
+                move += step;
+                emptyCount--;
+
+                backtrack(grid, redundant, empty);
+
+                // cancel decision
+                grid[destX][destY] = 0;
+                grid[srcX][srcY]++;
+                move -= step;
+                emptyCount++;
+            }
+        }
+    }
+};
+```
