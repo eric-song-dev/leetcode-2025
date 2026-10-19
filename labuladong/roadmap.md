@@ -7870,3 +7870,293 @@ public:
     }
 };
 ```
+
+### [399. Evaluate Division](https://leetcode.com/problems/evaluate-division/)
+
+#### tag - Amazon 面试的 currency convert 同款题，可以用 backtrack/BFS/DFS 做，但首先是构建 Weighted Graph，然后如果用 BFS 做，需要把需要计算的节点放到 queue 中，以模拟类似 backtrack 的中间结果
+
+```cpp
+class Solution {
+public:
+    vector<double> calcEquation(vector<vector<string>>& equations, vector<double>& values, vector<vector<string>>& queries) {
+        std::unordered_map<std::string, std::vector<std::pair<std::string, double>>> graph; // key: a, value: {{b, 2}, {c, 3})
+        for (int i = 0; i != equations.size(); ++i) {
+            const auto& equation = equations[i];
+            const auto& value = values[i];
+
+            const auto& firstVariable = equation.front();
+            const auto& secondVariable = equation.back();
+
+            graph[firstVariable].push_back({secondVariable, value});
+            graph[secondVariable].push_back({firstVariable, 1 / value});
+        }
+
+        std::vector<double> res;
+
+        for (const auto& query : queries) {
+            const auto& start = query.front();
+            const auto& end = query.back();
+            std::vector<std::pair<std::string, double>> path;
+            std::unordered_set<std::string> visited;
+            double result = -1.0;
+
+            if (graph.count(start) && graph.count(end)) {
+                backtrack(graph, result, path, visited, start, end);
+            }
+
+            res.push_back(result);
+        }
+
+        return res;
+    }
+
+private:
+    void backtrack(std::unordered_map<std::string, std::vector<std::pair<std::string, double>>>& graph, 
+                   double& result, 
+                   std::vector<std::pair<std::string, double>>& path, 
+                   std::unordered_set<std::string>& visited, 
+                   std::string start, 
+                   const std::string& end) {
+        // collect result
+        if (start == end) {
+            result = 1.0;
+            for (const auto& item : path) {
+                result *= item.second; 
+            }
+            return;
+        }
+
+        for (const auto& option : graph[start]) {
+            const auto& secondVariable = option.first;
+            const auto& value = option.second;
+
+            if (visited.count(secondVariable)) {
+                continue;
+            }
+
+            // make decision
+            path.push_back(option);
+            visited.insert(secondVariable);
+
+            backtrack(graph, result, path, visited, secondVariable, end);
+
+            // cancel decision
+            visited.erase(secondVariable);
+            path.pop_back();
+        }
+    }
+};
+```
+
+```cpp
+class Solution {
+public:
+    vector<double> calcEquation(vector<vector<string>>& equations, vector<double>& values, vector<vector<string>>& queries) {
+        std::unordered_map<std::string, std::vector<std::pair<std::string, double>>> graph; // key: a, value: {{b, 2}, {c, 3})
+        for (int i = 0; i != equations.size(); ++i) {
+            const auto& equation = equations[i];
+            const auto& value = values[i];
+
+            const auto& firstVariable = equation.front();
+            const auto& secondVariable = equation.back();
+
+            graph[firstVariable].push_back({secondVariable, value});
+            graph[secondVariable].push_back({firstVariable, 1 / value});
+        }
+
+        std::vector<double> res;
+
+        for (const auto& query : queries) {
+            const auto& start = query.front();
+            const auto& end = query.back();
+
+            if (!graph.count(start) || !graph.count(end)) {
+                res.push_back(-1.0);
+                continue;
+            }
+
+            if (start == end) {
+                res.push_back(1.0);
+                continue;
+            }
+
+            std::queue<std::pair<std::string, double>> q;
+            std::unordered_set<std::string> visited;
+
+            double result = -1.0;
+            q.push({start, 1.0});
+            visited.insert(start);
+
+            while (!q.empty()) {
+                auto current = q.front();
+                q.pop();
+
+                if (current.first == end) {
+                    result = current.second;
+                    break;
+                }
+
+                for (const auto& [secondVariable, value] : graph[current.first]) {
+                    if (visited.count(secondVariable)) {
+                        continue;
+                    }
+
+                    q.push({secondVariable, value * current.second});
+                    visited.insert(secondVariable);
+                }
+            }
+
+            res.push_back(result);
+        }
+
+        return res;
+    }
+};
+```
+
+```cpp
+class Solution {
+public:
+    vector<double> calcEquation(vector<vector<string>>& equations, vector<double>& values, vector<vector<string>>& queries) {
+        std::unordered_map<std::string, std::vector<std::pair<std::string, double>>> graph; // key: a, value: {{b, 2}, {c, 3})
+        for (int i = 0; i != equations.size(); ++i) {
+            const auto& equation = equations[i];
+            const auto& value = values[i];
+
+            const auto& firstVariable = equation.front();
+            const auto& secondVariable = equation.back();
+
+            graph[firstVariable].push_back({secondVariable, value});
+            graph[secondVariable].push_back({firstVariable, 1 / value});
+        }
+
+        std::vector<double> res;
+
+        for (const auto& query : queries) {
+            const auto& start = query.front();
+            const auto& end = query.back();
+            double result = -1.0;
+            std::unordered_set<std::string> visited;
+
+            if (graph.count(start) && graph.count(end)) {
+                dfs(graph, 1.0, result, visited, start, end);
+            }
+
+            res.push_back(result);
+        }
+
+        return res;
+    }
+
+private:
+    void dfs(std::unordered_map<std::string, std::vector<std::pair<std::string, double>>>& graph, 
+             double product, 
+             double& result,
+             std::unordered_set<std::string>& visited,
+             std::string start, 
+             const std::string& end) {
+        if (start == end) {
+            result = product;
+            return;
+        }
+
+        visited.insert(start);
+
+        for (const auto& [secondVariable, value] : graph[start]) {
+            if (visited.count(secondVariable)) {
+                continue;
+            }
+
+            dfs(graph, product * value, result, visited, secondVariable, end);
+        }
+    }
+};
+```
+
+### [924. Minimize Malware Spread](https://leetcode.com/problems/minimize-malware-spread/)
+
+#### tag - Adjacency Matrix（邻接矩阵）的 Time Complexity 一般是 O(V^2)，Adjacency List（邻接表）的 Time Complexity 一般是 O(V + E)
+
+```cpp
+class Solution {
+public:
+    int minMalwareSpread(vector<vector<int>>& graph, vector<int>& initial) {
+        // edge case
+        if (graph.empty() || graph.size() != graph[0].size() || initial.empty() || initial.size() > graph.size()) {
+            return -1;
+        }
+
+        const int n = graph.size();
+
+        std::vector<int> component(n, -1);
+        std::vector<int> componentSize;
+        int componentId = 0;
+
+        for (int i = 0; i < n; ++i) {
+            if (component[i] != -1) {
+                continue;
+            }
+
+            std::queue<int> q;
+            int size = 0;
+
+            q.push(i);
+            component[i] = componentId;
+            ++size;
+
+            while (!q.empty()) {
+                auto current = q.front();
+                q.pop();
+
+                for (int neighbor = 0; neighbor < n; ++neighbor) {
+                    if (component[neighbor] != -1) {
+                        continue;
+                    }
+
+                    if (graph[current][neighbor] != 1) {
+                        continue;
+                    }
+
+                    q.push(neighbor);
+                    component[neighbor] = componentId;
+                    ++size;
+                }
+            }
+
+            componentSize.push_back(size);
+            ++componentId;
+        }
+
+        std::vector<int> infectedCount(componentId, 0);
+
+        for (const auto infectedNode : initial) {
+            ++infectedCount[component[infectedNode]];
+        }
+
+        std::sort(initial.begin(), initial.end());
+
+        int minimizeNode = initial.front();
+        int maxComponentSizeOfOnlyOneInfectedNode = -1;
+
+        for (const auto infectedNode : initial) {
+            const auto& componentId = component[infectedNode];
+
+            if (infectedCount[componentId] != 1) {
+                continue;
+            }
+
+            if (maxComponentSizeOfOnlyOneInfectedNode < componentSize[componentId]) {
+                maxComponentSizeOfOnlyOneInfectedNode = componentSize[componentId];
+                minimizeNode = infectedNode;
+            }
+        }
+
+        return minimizeNode;
+    }
+};
+
+/*
+Time Complexity: O(V^2)
+Space Complexity: O(V)
+*/
+```
