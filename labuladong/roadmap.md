@@ -8160,3 +8160,54 @@ Time Complexity: O(V^2)
 Space Complexity: O(V)
 */
 ```
+
+### [323. Number of Connected Components in an Undirected Graph](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/)
+
+#### tag - 注意必须写 parent[rootB] = rootA; 让整根树都接过去，而不是 parent[b] = rootA; 只过去一个节点
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+
+    int find(int x) {
+        if (parent[x] == x) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+public:
+    int countComponents(int n, vector<vector<int>>& edges) {
+        // edge case
+        if (n <= 0) {
+            return -1;
+        }
+
+        int count = n;
+        parent.resize(n);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+
+        for (const auto& edge : edges) {
+            auto a = edge.front();
+            auto b = edge.back();
+            auto rootA = find(a);
+            auto rootB = find(b);
+
+            if (rootA == rootB) {
+                continue;
+            }
+
+            parent[rootB] = rootA; // note: there is parent[rootB] instead of parent[b]
+            --count;
+        }
+
+        return count;
+    }
+};
+```
