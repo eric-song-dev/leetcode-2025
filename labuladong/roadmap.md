@@ -8211,3 +8211,237 @@ public:
     }
 };
 ```
+
+### [130. Surrounded Regions](https://leetcode.com/problems/surrounded-regions/)
+
+#### tag - BFS 时间复杂度分析总结
+
+BFS 的时间复杂度，本质上取决于图的存储方式、节点数量，以及每个节点需要检查多少个邻居。
+
+最常见的三种情况：
+
+| 场景         | 时间复杂度        | 原因                                   |
+| ---------- | ------------ | ------------------------------------ |
+| 一般图（邻接表 adjacency list）   | \\(O(V+E)\\) | 每个顶点访问一次，每条边检查一次（无向边两次）              |
+| 一般图（邻接矩阵 adjacency matrix）  | \\(O(V^2)\\) | 每访问一个顶点，都需要扫描 \\(V\\) 个可能的邻居         |
+| 二维网格（Grid） | \\(O(mn)\\)  | 最多 \\(mn\\) 个格子，每个格子只检查固定的 4 或 8 个方向 |
+
+```cpp
+class Solution {
+public:
+    void solve(vector<vector<char>>& board) {
+        // edge case
+        if (board.empty() || board[0].empty()) {
+            return;
+        }
+
+        const int m = board.size();
+        const int n = board[0].size();
+
+        std::queue<std::pair<int, int>> q;
+
+        for (int i = 0; i < m; ++i) {
+            if (board[i][0] == 'O') {
+                board[i][0] = 'V';
+                q.push({i, 0});
+            }
+
+            if (board[i][n - 1] == 'O') {
+                board[i][n - 1] = 'V';
+                q.push({i, n - 1});
+            }
+        }
+
+        for (int j = 0; j < n; ++j) {
+            if (board[0][j] == 'O') {
+                board[0][j] = 'V';
+                q.push({0, j});
+            }
+
+            if (board[m - 1][j] == 'O') {
+                board[m - 1][j] = 'V';
+                q.push({m - 1, j});
+            }
+        }
+
+        static const std::vector<std::pair<int, int>> directions = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+        };
+
+        while (!q.empty()) {
+            auto [curX, curY] = q.front();
+            q.pop();
+
+            for (const auto& [x, y] : directions) {
+                std::pair<int, int> next = {curX + x, curY + y};
+
+                if (next.first < 0 || next.first >= m ||
+                    next.second < 0 || next.second >= n) {
+                    continue;
+                }
+
+                if (board[next.first][next.second] == 'X') { // no need to visit
+                    continue;
+                }
+
+                if (board[next.first][next.second] == 'V') { // visited
+                    continue;
+                }
+
+                board[next.first][next.second] = 'V';
+                q.push(next);
+            }
+        }
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (board[i][j] == 'V') {
+                    board[i][j] = 'O';
+                } else {
+                    board[i][j] = 'X';
+                }
+            }
+        }
+    }
+};
+```
+
+### [990. Satisfiability of Equality Equations](https://leetcode.com/problems/satisfiability-of-equality-equations/)
+
+#### tag - 先用 == 建立连通关系，再用 != 检查是否存在冲突。别忘了 parent 的初始化
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+public:
+    bool equationsPossible(vector<string>& equations) {
+        // edge case
+        if (equations.empty()) {
+            return true;
+        }
+
+        parent.resize(26);
+        for (int i = 0; i < 26; ++i) {
+            parent[i] = i;
+        }
+
+        for (const auto& equation : equations) {
+            if (equation[1] == '!') {
+                continue;
+            }
+
+            int a = equation[0] - 'a';
+            int b = equation[3] - 'a';
+            int rootA = find(a);
+            int rootB = find(b);
+
+            if (rootA == rootB) {
+                continue;
+            }
+
+            parent[rootB] = rootA;
+        }
+
+        for (const auto& equation : equations) {
+            if (equation[1] == '=') {
+                continue;
+            }
+
+            int a = equation[0] - 'a';
+            int b = equation[3] - 'a';
+            int rootA = find(a);
+            int rootB = find(b);
+
+            if (rootA == rootB) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+```
+
+### [547. Number of Provinces](https://leetcode.com/problems/number-of-provinces/)
+
+#### tag - 可以用 path compression + union by size 去优化
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+public:
+    int findCircleNum(vector<vector<int>>& isConnected) {
+        // edge case
+        if (isConnected.empty() || isConnected.size() != isConnected[0].size()) {
+            return -1;
+        }
+
+        const int n = isConnected.size();
+
+        parent.resize(n);
+        size.resize(n, 1);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+
+        int provincesNum = n;
+
+        for (int i = 0; i < n; ++i) {
+            for (int j = i; j < n; ++j) {
+                if (isConnected[i][j] != 1) {
+                    continue;
+                }
+
+                auto rootI = find(i);
+                auto rootJ = find(j);
+
+                if (rootI == rootJ) {
+                    continue;
+                }
+
+                if (size[rootI] > size[rootJ]) {
+                    parent[rootJ] = rootI;
+                    size[rootI] += size[rootJ];
+                } else {
+                    parent[rootI] = rootJ;
+                    size[rootJ] += size[rootI];
+                }
+
+                --provincesNum;
+            }
+        }
+
+        return provincesNum;
+    }
+};
+
+/*
+Time Complexity: O(n^2 * alpha(n)) = O(n^2)
+Space Complexity: O(n)
+*/
+```
