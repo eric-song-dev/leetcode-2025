@@ -8445,3 +8445,167 @@ Time Complexity: O(n^2 * alpha(n)) = O(n^2)
 Space Complexity: O(n)
 */
 ```
+
+### [1361. Validate Binary Tree Nodes](https://leetcode.com/problems/validate-binary-tree-nodes/)
+
+#### tag - DFS 不一定需要显式的 Base Case，只要递归能够自然终止即可
+
+```cpp
+class Solution {
+public:
+    bool validateBinaryTreeNodes(int n, vector<int>& leftChild, vector<int>& rightChild) {
+        // edge case
+        if (n <= 0 || n != leftChild.size() || n != rightChild.size()) {
+            return false;
+        }
+
+        std::vector<int> indegree(n, 0);
+        for (const auto node : leftChild) {
+            if (node == -1) {
+                continue;
+            }
+            ++indegree[node];
+        }
+        for (const auto node : rightChild) {
+            if (node == -1) {
+                continue;
+            }
+            ++indegree[node];
+        }
+
+        int root = -1;
+        int rootNum = 0;
+        for (int i = 0; i < n; ++i) {
+            if (indegree[i] > 1) {
+                return false;
+            } else if (indegree[i] == 0) {
+                root = i;
+                ++rootNum;
+            }
+        }
+
+        if (rootNum != 1) {
+            return false;
+        }
+
+        int count = 0;
+
+        dfs(root, count, leftChild, rightChild);
+
+        return count == n;
+    }
+
+private:
+    void dfs(int node, int& count, const vector<int>& leftChild, const vector<int>& rightChild) {
+        ++count;
+        
+        if (leftChild[node] != -1) {
+            dfs(leftChild[node], count, leftChild, rightChild);
+        }
+
+        if (rightChild[node] != -1) {
+            dfs(rightChild[node], count, leftChild, rightChild);
+        }
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(n)
+*/
+```
+
+```cpp
+class Solution {
+public:
+    bool validateBinaryTreeNodes(int n, vector<int>& leftChild, vector<int>& rightChild) {
+        // edge case
+        if (n <= 0 || n != leftChild.size() || n != rightChild.size()) {
+            return false;
+        }
+
+        std::vector<int> indegree(n, 0);
+        for (const auto node : leftChild) {
+            if (node == -1) {
+                continue;
+            }
+            ++indegree[node];
+        }
+        for (const auto node : rightChild) {
+            if (node == -1) {
+                continue;
+            }
+            ++indegree[node];
+        }
+
+        int root = -1;
+        int rootNum = 0;
+        for (int i = 0; i < n; ++i) {
+            if (indegree[i] > 1) {
+                return false;
+            } else if (indegree[i] == 0) {
+                root = i;
+                ++rootNum;
+            }
+        }
+
+        if (rootNum != 1) {
+            return false;
+        }
+
+        parent.resize(n);
+        size.resize(n, 1);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+
+        for (int i = 0; i < n; ++i) {
+            if (leftChild[i] != -1) {
+                unionNodes(i, leftChild[i]);
+            }
+
+            if (rightChild[i] != -1) {
+                unionNodes(i, rightChild[i]);
+            }
+        }
+
+        return size[find(root)] == n;
+    }
+
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+    
+    void unionNodes(int a, int b) {
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+    }
+};
+
+/*
+Time Complexity: O(n * alpha(n))
+Space Complexity: O(n)
+*/
+```
