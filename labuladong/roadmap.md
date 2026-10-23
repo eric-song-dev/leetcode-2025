@@ -8797,3 +8797,101 @@ Time Complexity: O(V + E)
 Space Complexity: O(V + E)
 */
 ```
+
+### [947. Most Stones Removed with Same Row or Column](https://leetcode.com/problems/most-stones-removed-with-same-row-or-column/)
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+    void unite(int a, int b) {
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+    }
+
+public:
+    int removeStones(vector<vector<int>>& stones) {
+        const int n = stones.size();
+
+        parent.resize(n);
+        size.assign(n, 1);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+
+        std::unordered_map<int, std::vector<int>> bucketX;
+        std::unordered_map<int, std::vector<int>> bucketY;
+        for (int i = 0; i < n; ++i) {
+            auto& stone = stones[i];
+            int x = stone[0];
+            int y = stone[1];
+
+            bucketX[x].push_back(i);
+            bucketY[y].push_back(i);
+        }
+
+        for (int i = 0; i < n; ++i) {
+            auto& stone = stones[i];
+            int x = stone[0];
+            int y = stone[1];
+
+            for (const auto neighbor : bucketX[x]) {
+                if (neighbor == i) {
+                    continue;
+                }
+
+                unite(neighbor, i);
+                break;
+            }
+
+            for (const auto neighbor : bucketY[y]) {
+                if (neighbor == i) {
+                    continue;
+                }
+
+                unite(neighbor, i);
+                break;
+            }
+        }
+
+        int res = 0;
+
+        for (int i = 0; i < n; ++i) {
+            if (find(i) == i) {
+                res += size[i] - 1;
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * alpha(n))
+Space Complexity: O(n)
+*/
+```
