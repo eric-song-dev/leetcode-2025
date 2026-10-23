@@ -8895,3 +8895,121 @@ Time Complexity: O(n * alpha(n))
 Space Complexity: O(n)
 */
 ```
+
+### [967. Numbers With Same Consecutive Differences](https://leetcode.com/problems/numbers-with-same-consecutive-differences/)
+
+#### tag - 如何处理数字进位要好好熟悉下
+
+```cpp
+class Solution {
+public:
+    vector<int> numsSameConsecDiff(int n, int k) {
+        std::vector<int> res;
+
+        backtrack(res, n, k, 0, 0);
+        
+        return res;
+    }
+
+private:
+    void backtrack(std::vector<int>& res, int n, int k, int digit, int num) {
+        // collect results
+        if (digit == n) {
+            res.push_back(num);
+            return;
+        }
+
+        for (int i = 0; i < 10; ++i) {
+            if (digit == 0 && i == 0) {
+                continue;
+            }
+
+            if (digit > 0 && std::abs((num % 10) - i) != k) {
+                continue;
+            }
+
+            // make decision
+            num = 10 * num + i;
+
+            backtrack(res, n, k, digit + 1, num);
+
+            // cancel decision
+            num = num / 10;
+        }
+    }
+};
+
+/*
+Time Complexity: O(2 ^ n)
+Space Complexity: O(n * K), where K is the res.size()
+*/
+```
+
+### [131. Palindrome Partitioning](https://leetcode.com/problems/palindrome-partitioning/)
+
+#### tag - 回溯的时间复杂度分析可以从递归树上的节点数入手，然后节点数 * 每个节点的操作的时间复杂度，总时间复杂度 = 整棵递归树中所有节点执行的本地操作的时间之和。这里有一个关键点：一个节点对应一次 backtrack() 调用，而不是 for 循环的一次迭代。；这道题注意 s.substr(startIndex, i - startIndex + 1)
+
+```cpp
+class Solution {
+public:
+    vector<vector<string>> partition(string s) {
+        // edge case
+        if (s.empty()) {
+            return {};
+        }
+
+        std::vector<std::vector<std::string>> res;
+        std::vector<std::string> path;
+
+        backtrack(s, res, path, 0);
+
+        return res;
+    }
+
+private:
+    void backtrack(const std::string& s, 
+                   std::vector<std::vector<std::string>>& res, 
+                   std::vector<std::string>& path, 
+                   int startIndex) {
+        // collect results
+        if (startIndex == s.size()) {
+            res.push_back(path);
+            return;
+        }
+
+        for (int i = startIndex; i < s.size(); ++i) {
+            auto subStr = s.substr(startIndex, i - startIndex + 1);
+            if (!isPalindrome(subStr)) {
+                continue;
+            }
+
+            // make decision
+            path.push_back(subStr);
+
+            backtrack(s, res, path, i + 1);
+
+            // cancel decision
+            path.pop_back();
+        }
+    }
+
+    bool isPalindrome(const std::string& s) {
+        if (s.size() <= 1) {
+            return true;
+        }
+
+        for (int left = 0, right = s.size() - 1; left < right; ++left, --right) {
+            if (s[left] != s[right]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+/*
+Time Complexity: O(n^2 * 2^n)
+Space Complexity: O(n * 2^n), since in the worst case, res has 2^(n - 1) combination
+*/
+```
