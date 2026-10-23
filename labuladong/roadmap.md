@@ -1,5 +1,11 @@
 [TOC]
 
+### 复习范围
+
+1. 复杂度分析（各个数据结构和算法，比如不同图的数据结构如 adjacency list 等，树，排序，priority queue）
+2. 各个解题方法的模板
+3. 树和图的关系
+
 ### [303. Range Sum Query - Immutable](https://leetcode.com/problems/range-sum-query-immutable/)
 
 ```cpp
@@ -8607,5 +8613,187 @@ private:
 /*
 Time Complexity: O(n * alpha(n))
 Space Complexity: O(n)
+*/
+```
+
+### [261. Graph Valid Tree](https://leetcode.com/problems/graph-valid-tree/)
+
+#### tag - 太小众了，树（Tree）是图（Graph）的一种特殊形式。所有树都是图，但不是所有图都是树。从图论角度来说：Tree = Connected + Acyclic Undirected Graph，也就是：树 = 连通且无环的无向图。Graph Valid Tree 不要求存在指定的 Root，也不限制一个节点连接多少个其他节点。Graph Valid Tree 的关键数学性质：对于有 \(n\) 个节点、\(m\) 条边的无向图，如果 \(m < n-1\)，一定无法连接所有节点。如果 \(m > n-1\)，一定存在环。如果 \(m = n-1\)，只要图连通，就一定没有环。而对于无向图，DFS 过程中：如果访问到一个已经 visited 的节点，并且它不是当前节点的父节点，那么存在环。
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+    bool unite(int a, int b) {
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return false; // cycle detected
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
+    }
+
+public:
+    bool validTree(int n, vector<vector<int>>& edges) {
+        parent.resize(n);
+        size.assign(n, 1);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+
+        for (const auto& edge : edges) {
+            if (!unite(edge[0], edge[1])) {
+                return false;
+            }
+        }
+
+        return size[find(0)] == n;
+    }
+};
+
+/*
+Time Complexity: O(n + m * alpha(n)), where m = edges.size()
+Space Complexity: O(n)
+*/
+```
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+    void unite(int a, int b) {
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+    }
+
+public:
+    bool validTree(int n, vector<vector<int>>& edges) {
+        if (edges.size() != n - 1) {
+            return false;
+        }
+
+        parent.resize(n);
+        size.assign(n, 1);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+
+        for (const auto& edge : edges) {
+            unite(edge[0], edge[1]);
+        }
+
+        return size[find(0)] == n;
+    }
+};
+
+/*
+Time Complexity: O(n + m * alpha(n)) = O(n + (n - 1) * alpha(n)) = O(n * alpha(n)), where m = edges.size()
+Space Complexity: O(n)
+*/
+```
+
+```cpp
+class Solution {
+public:
+    bool validTree(int n, vector<vector<int>>& edges) {
+        if (edges.size() != n - 1) {
+            return false;
+        }
+
+        // build adjacency list
+        std::vector<std::vector<int>> graph(n);
+        for (const auto& edge : edges) {
+            auto a = edge[0];
+            auto b = edge[1];
+
+            graph[a].push_back(b);
+            graph[b].push_back(a);
+        }
+
+        std::vector<bool> visited(n, false);
+        if (!dfs(graph, visited, -1, 0)) {
+            return false;
+        }
+
+        for (const auto v : visited) {
+            if (!v) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+private:
+    bool dfs(const std::vector<std::vector<int>>& graph, std::vector<bool>& visited, int parent, int node) {
+        visited[node] = true;
+
+        for (const auto neighbor : graph[node]) {
+            if (neighbor == parent) {
+                continue;
+            }
+
+            if (visited[neighbor]) {
+                return false;
+            }
+
+            if (!dfs(graph, visited, node, neighbor)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+/*
+Time Complexity: O(V + E)
+Space Complexity: O(V + E)
 */
 ```
