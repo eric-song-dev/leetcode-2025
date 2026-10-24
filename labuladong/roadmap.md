@@ -9160,3 +9160,86 @@ Time Complexity: O(n * 4^n), where n is from res.push_back(path);, 4^n is the wo
 Space Complexity: O(n * 4^n)
 */
 ```
+
+### [93. Restore IP Addresses](https://leetcode.com/problems/restore-ip-addresses/)
+
+#### tag - 值得复习
+
+```cpp
+class Solution {
+public:
+    vector<string> restoreIpAddresses(string s) {
+        // edge case
+        if (s.size() < 4 || s.size() > 12) {
+            return {};
+        }
+
+        std::vector<std::string> res;
+        std::string path;
+
+        backtrack(s, res, path, 0, 4);
+
+        return res;
+    }
+
+private:
+    void backtrack(const std::string& s,
+                   std::vector<std::string>& res,
+                   std::string& path,
+                   int startIndex,
+                   int secNum) {
+        // collect results
+        if (secNum == 0) {
+            if (startIndex == s.size()) {
+                res.push_back(path);
+            }
+            
+            return;
+        }
+
+        for (int i = startIndex; i < s.size() && i < startIndex + 3; ++i) {
+            auto num = s.substr(startIndex, i - startIndex + 1);
+            if (!isValid(num)) {
+                continue;
+            }
+
+            // make decision
+            int originalSize = path.size();
+            if (!path.empty()) {
+                path.append(".");
+            }
+            path.append(num);
+            --secNum;
+
+            backtrack(s, res, path, i + 1, secNum);
+
+            // cancel decision
+            ++secNum;
+            path.resize(originalSize);
+        }
+    }
+
+    bool isValid(const std::string& num) {
+        if (num.size() < 1 || num.size() > 3) {
+            return false;
+        }
+
+        if (num[0] == '0' && num.size() > 1) {
+            return false;
+        }
+
+        int number = std::stoi(num);
+
+        if (number < 0 || number > 255) {
+            return false;
+        }
+
+        return true;
+    }
+};
+
+/*
+Time Complexity: O(3 * n * 3^3), where n is s.size()
+Space Complexity: O(n * 3^3)
+*/
+```
