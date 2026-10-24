@@ -9243,3 +9243,149 @@ Time Complexity: O(3 * n * 3^3), where n is s.size()
 Space Complexity: O(n * 3^3)
 */
 ```
+
+### [784. Letter Case Permutation](https://leetcode.com/problems/letter-case-permutation/)
+
+```cpp
+class Solution {
+public:
+    vector<string> letterCasePermutation(string s) {
+        // edge case
+        if (s.empty()) {
+            return {};
+        }
+
+        std::vector<std::string> res;
+        std::string path;
+
+        backtrack(s, res, path, 0);
+
+        return res;
+    }
+
+private:
+    void backtrack(const string& s, 
+                   std::vector<std::string>& res, 
+                   std::string& path,
+                   int startIndex) {
+        // collect results
+        if (startIndex == s.size()) {
+            res.push_back(path);
+            return;
+        }
+
+        char curCh = s[startIndex];
+        if (std::isdigit(curCh)) {
+            // make decision
+            path.push_back(curCh);
+
+            backtrack(s, res, path, startIndex + 1);
+
+            // cancel decision
+            path.pop_back();
+        } else if (std::isalpha(curCh)) {
+            // make decision
+            path.push_back(std::toupper(curCh));
+
+            backtrack(s, res, path, startIndex + 1);
+
+            // cancel decision
+            path.pop_back();
+
+            // make decision
+            path.push_back(std::tolower(curCh));
+
+            backtrack(s, res, path, startIndex + 1);
+
+            // cancel decision
+            path.pop_back();
+        }
+    }
+};
+
+/*
+Time Complexity: O(n * 2^k), where n is s.size(), k is the total numbers of letters in s
+Space Complexity: O(n * 2^k)
+*/
+```
+
+### [1219. Path with Maximum Gold](https://leetcode.com/problems/path-with-maximum-gold/)
+
+#### tag - // collect results 的位置可以灵活调整，也不用一定要写 return，path 全走完自然会 return；潜在 Bug：static const int m / n。因为 static 局部变量只初始化一次。如果后续使用不同尺寸的 grid 再次调用函数，m 和 n 不会更新，可能导致越界。
+
+```cpp
+class Solution {
+public:
+    int getMaximumGold(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) {
+            return 0;
+        }
+
+        int res = 0;
+        int path = 0;
+
+        const int m = grid.size();
+        const int n = grid[0].size();
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (grid[i][j] == 0) {
+                    continue;
+                }
+
+                backtrack(grid, i, j, res, path);
+            }
+        }
+
+        return res;
+    }
+
+private:
+    void backtrack(std::vector<std::vector<int>>& grid,
+                   int x, 
+                   int y,
+                   int& res,
+                   int path) {
+        const int m = grid.size();
+        const int n = grid[0].size();
+
+        static const std::vector<std::pair<int, int>> directions = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+        };
+
+        // make decision
+        path += grid[x][y];
+        auto originalValue = grid[x][y];
+        grid[x][y] = 0;
+
+        // collect results
+        res = std::max(res, path);
+
+        for (const auto& [dx, dy] : directions) {
+            auto nextX = x + dx;
+            auto nextY = y + dy;
+
+            if (nextX < 0 || nextX >= m ||
+                nextY < 0 || nextY >= n) {
+                continue;
+            }
+
+            if (grid[nextX][nextY] == 0) {
+                continue;
+            }
+
+            backtrack(grid, nextX, nextY, res, path);
+        }
+
+        // cancel decision
+        grid[x][y] = originalValue;
+        path -= grid[x][y];
+    }
+};
+
+/*
+Time Complexity: O(m * n * 3^(m * n))
+Time Complexity: O(m * n), considered stack depth
+*/
+```
