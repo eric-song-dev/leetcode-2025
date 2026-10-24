@@ -9013,3 +9013,150 @@ Time Complexity: O(n^2 * 2^n)
 Space Complexity: O(n * 2^n), since in the worst case, res has 2^(n - 1) combination
 */
 ```
+
+### [79. Word Search](https://leetcode.com/problems/word-search/)
+
+#### tag - 一维转二维，除以列数得行，模列数得列。int x = i / n; int y = i % n; backtrack 是可以放在 for 循环里的；提前退出
+
+```cpp
+class Solution {
+public:
+    bool exist(vector<vector<char>>& board, string word) {
+        // edge case
+        if (word.empty() || board.empty() || board[0].empty()) {
+            return false;
+        }
+
+        const int m = board.size();
+        const int n = board[0].size();
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (board[i][j] != word[0]) {
+                    continue;
+                }
+
+                bool isFound = false;
+                backtrack(board, word, i, j, 0, isFound);
+                if (isFound) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+private:
+    void backtrack(std::vector<std::vector<char>>& board, 
+                   const std::string& word, 
+                   int x,
+                   int y,
+                   int startIndex,
+                   bool& isFound) {
+        // collect results
+        if (startIndex == word.size() - 1) {
+            isFound = true;
+            return;
+        }
+
+        const int m = board.size();
+        const int n = board[0].size();
+
+        static const std::vector<std::pair<int, int>> directions = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+        };
+
+        for (const auto& [dx, dy] : directions) {
+            auto nextX = x + dx;
+            auto nextY = y + dy;
+
+            if (nextX < 0 || nextX >= m ||
+                nextY < 0 || nextY >= n) {
+                continue;
+            }
+
+            if (board[nextX][nextY] != word[startIndex + 1]) {
+                continue;
+            }
+
+            auto original = board[x][y];
+            // make decision
+            board[x][y] = '#';
+
+            backtrack(board, word, nextX, nextY, startIndex + 1, isFound);
+
+            // cancel decision
+            board[x][y] = original;
+
+            if (isFound) {
+                break;
+            }
+        }
+    }
+};
+
+/*
+Time Complexity: O(m * n * 3^k), where k is word.size()
+Space Complexity: O(k)
+*/
+```
+
+### [17. Letter Combinations of a Phone Number](https://leetcode.com/problems/letter-combinations-of-a-phone-number/)
+
+```cpp
+class Solution {
+public:
+    vector<string> letterCombinations(string digits) {
+        // edge case
+        if (digits.empty()) {
+            return {};
+        }
+
+        std::vector<std::string> res;
+        std::string path;
+
+        backtrack(res, path, digits, 0);
+
+        return res;
+    }
+
+private:
+    void backtrack(std::vector<std::string>& res, 
+                   std::string& path,
+                   const std::string& digits,
+                   int startIndex) {
+        // collect results
+        if (path.size() == digits.size()) {
+            res.push_back(path);
+            return;
+        }
+        
+        static const std::unordered_map<char, std::vector<char>> digit2Chars = {
+            {'2', {'a', 'b', 'c'}},
+            {'3', {'d', 'e', 'f'}},
+            {'4', {'g', 'h', 'i'}},
+            {'5', {'j', 'k', 'l'}},
+            {'6', {'m', 'n', 'o'}},
+            {'7', {'p', 'q', 'r', 's'}},
+            {'8', {'t', 'u', 'v'}},
+            {'9', {'w', 'x', 'y', 'z'}},
+        };
+
+        for (const auto ch : digit2Chars.at(digits[startIndex])) {
+            // make decision
+            path.push_back(ch);
+
+            backtrack(res, path, digits, startIndex + 1);
+
+            // cancel decision
+            path.pop_back();
+        }
+    }
+};
+
+/*
+Time Complexity: O(n * 4^n), where n is from res.push_back(path);, 4^n is the worst case of choosing 7 or 9 always
+Space Complexity: O(n * 4^n)
+*/
+```
