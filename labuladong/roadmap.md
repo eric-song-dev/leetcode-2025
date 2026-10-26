@@ -9389,3 +9389,95 @@ Time Complexity: O(m * n * 3^(m * n))
 Time Complexity: O(m * n), considered stack depth
 */
 ```
+
+### [638. Shopping Offers](https://leetcode.com/problems/shopping-offers/)
+
+```cpp
+class Solution {
+public:
+    int shoppingOffers(vector<int>& price, vector<vector<int>>& special, vector<int>& needs) {
+        // edge case
+        if (price.empty() || price.size() != needs.size()) {
+            return -1;
+        }
+
+        const int n = needs.size();
+
+        for (int i = 0; i < n; ++i) {
+            std::vector<int> oneItemSpecial(n + 1, 0);
+
+            oneItemSpecial[i] = 1;
+            oneItemSpecial[n] = price[i];
+
+            special.push_back(oneItemSpecial);
+        }
+
+        int res = INT_MAX;
+        std::map<vector<int>, int> memo;
+
+        backtrack(special, needs, memo, res, 0);
+
+        return res;
+    }
+
+private:
+    void backtrack(const vector<vector<int>>& special, 
+                   const vector<int>& needs,
+                   std::map<vector<int>, int>& memo,
+                   int& res,
+                   int totalPrice) {
+        if (totalPrice >= res) {
+            return;
+        }
+
+        if (memo.count(needs) && memo[needs] <= totalPrice) {
+            return;
+        }
+
+        memo[needs] = totalPrice;
+
+        // collect results
+        if (isNeedsEmpty(needs)) {
+            res = std::min(res, totalPrice);
+            return;
+        }
+
+        const int n = needs.size();
+
+        for (const auto& oneSpecial : special) {
+            auto price = oneSpecial.back();
+
+            // make decision
+            auto newNeeds = needs;
+            bool meetReq = true;
+            for (int i = 0; i < n; ++i) {
+                newNeeds[i] = needs[i] - oneSpecial[i];
+                if (newNeeds[i] < 0) {
+                    meetReq = false;
+                    break;
+                }
+            }
+            if (!meetReq) {
+                continue;
+            }
+
+            totalPrice += price;
+
+            backtrack(special, newNeeds, memo, res, totalPrice);
+
+            // cancel decision
+            totalPrice -= price;
+        }
+    }
+
+    bool isNeedsEmpty(const vector<int>& needs) {
+        for (const auto node : needs) {
+            if (node != 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+```
