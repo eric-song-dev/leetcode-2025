@@ -9481,3 +9481,102 @@ private:
     }
 };
 ```
+
+### [110. Balanced Binary Tree](https://leetcode.com/problems/balanced-binary-tree/)
+
+#### tag - 这道题需要用 Bottom-up DFS。Top-down/Bottom-up 是递归设计思路，Preorder/Postorder 是遍历顺序。 它们通常对应，但不完全等价。另外，即使是 Bottom-up DFS，程序也必须先从根节点进入递归，再逐层下降。所谓 Bottom-up，指的是子树结果先计算完成，再向上传递和组合。面试中的判断技巧：如果当前节点需要向子节点传递信息，例如当前路径和、路径上的最大值，通常考虑 Top-down DFS。如果当前节点需要等待子节点返回结果，例如子树高度、直径、最大路径和，通常考虑 Bottom-up DFS。
+
+#### Top-down DFS
+
+```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+public:
+    bool isBalanced(TreeNode* root) {
+        // base case
+        if (!root) {
+            return true;
+        }
+
+        if (std::abs(depth(root->left) - depth(root->right)) > 1) {
+            return false;
+        }
+
+        return isBalanced(root->left) && isBalanced(root->right);
+    }
+
+    int depth(TreeNode* root) {
+        // base case
+        if (!root) {
+            return 0;
+        }
+
+        return std::max(depth(root->left), depth(root->right)) + 1;
+    }
+};
+
+/*
+Time Complexity: O(n^2), where n is the size of nodes
+Space Complexity: O(h), where h is the height of the tree, in the worst case, h = n
+*/
+```
+
+#### Bottom-up DFS
+
+```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+public:
+    bool isBalanced(TreeNode* root) {
+        return depth(root) != -1;
+    }
+
+    int depth(TreeNode* root) {
+        // base case
+        if (!root) {
+            return 0;
+        }
+
+        int left = depth(root->left);
+        if (left == -1) {
+            return -1;
+        }
+
+        int right = depth(root->right);
+        if (right == -1) {
+            return -1;
+        }
+
+        if (std::abs(left - right) > 1) {
+            return -1;
+        }
+
+        return std::max(left, right) + 1;
+    }
+};
+
+/*
+Time Complexity: O(n), where n is the size of nodes
+Space Complexity: O(h), where h is the height of the tree, in the worst case, h = n
+*/
+```
