@@ -5,6 +5,7 @@
 1. 复杂度分析（各个数据结构和算法，比如不同图的数据结构如 adjacency list 等，树，排序，priority queue）
 2. 各个解题方法的模板
 3. 树和图的关系
+4. priority_queue 的使用，尤其是 cmp 的比大小
 
 ### [303. Range Sum Query - Immutable](https://leetcode.com/problems/range-sum-query-immutable/)
 
@@ -9579,4 +9580,768 @@ public:
 Time Complexity: O(n), where n is the size of nodes
 Space Complexity: O(h), where h is the height of the tree, in the worst case, h = n
 */
+```
+
+### [38. Count and Say](https://leetcode.com/problems/count-and-say/)
+
+#### recursive
+
+```cpp
+class Solution {
+public:
+    string countAndSay(int n) {
+        // edge case
+        if (n < 1 || n > 30) {
+            return "";
+        }
+
+        // base case
+        if (n == 1) {
+            return "1";
+        }
+
+        std::string str = countAndSay(n - 1);
+
+        return say(str);
+    }
+
+private:
+    std::string say(const std::string& str) {
+        std::string rle;
+
+        for (int left = 0; left < str.size(); ) {
+            int right = left;
+            while (right < str.size() && str[right] == str[left]) {
+                ++right;
+            }
+
+            rle += std::to_string(right - left);
+            rle += str[left];
+            
+            left = right;
+        }
+
+        return rle;
+    }
+};
+```
+
+#### iterative
+
+```cpp
+class Solution {
+public:
+    string countAndSay(int n) {
+        // edge case
+        if (n < 1 || n > 30) {
+            return "";
+        }
+
+        std::string rle = "1";
+
+        for (int i = 1; i < n; ++i) {
+            std::string next;
+
+            for (int left = 0; left < rle.size(); ) {
+                int right = left;
+                while (right < rle.size() && rle[right] == rle[left]) {
+                    ++right;
+                }
+
+                next += std::to_string(right - left);
+                next += rle[left];
+                
+                left = right;
+            }
+
+            rle = next;
+        }
+
+        return rle;
+    }
+};
+
+/*
+Time Complexity: O(n * l), where l is the average size of rle
+Space Complexity: O(k), where k is rle.size()
+*/
+```
+
+### [373. Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/)
+
+#### tag - 好题，可以帮助理解 Min Heap/priority_queue + K-way Merge
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> kSmallestPairs(vector<int>& nums1, vector<int>& nums2, int k) {
+        // edge case
+        if (nums1.empty() || nums2.empty() || k <= 0) {
+            return {};
+        }
+
+        using T = std::tuple<long long, int, int>;
+
+        auto cmp = [](const T& a, const T& b) {
+            return std::get<0>(a) > std::get<0>(b);
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+
+        auto num2 = nums2[0];
+        for (int i = 0; i < std::min(k, (int)nums1.size()); ++i) {
+            auto num1 = nums1[i];
+            pq.push({(long long)num1 + num2, i, 0});
+        }
+
+        std::vector<std::vector<int>> res;
+
+        while (k-- && !pq.empty()) {
+            auto [total, i, j] = pq.top();
+            pq.pop();
+
+            res.push_back({nums1[i], nums2[j]});
+
+            if (j + 1 < nums2.size()) {
+                pq.push({(long long)nums1[i] + nums2[j + 1], i, j + 1});
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+[1, 2] -> [1, 4] -> [1, 6]
+[7, 2] -> [7, 4] -> [7, 6]
+[11, 2] -> [11, 4] -> [11, 6]
+
+n = nums1.size()
+m = nums2.size()
+h = min(n,k)
+Time Complexity: O(k * log(h))
+Space Complexity: O(h)
+*/
+```
+
+### [378. Kth Smallest Element in a Sorted Matrix](https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/)
+
+#### K-way Merge
+
+```cpp
+class Solution {
+public:
+    int kthSmallest(vector<vector<int>>& matrix, int k) {
+        // edge case
+        if (matrix.empty() || matrix[0].empty()) {
+            return INT_MAX;
+        }
+
+        const int m = matrix.size();
+        const int n = matrix[0].size();
+
+        if (k <= 0 || k > m * n) {
+            return INT_MAX;
+        }
+
+        using T = std::tuple<int, int, int>;
+        auto cmp = [](const T& a, const T& b) {
+            return std::get<0>(a) > std::get<0>(b);
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+
+        for (int i = 0; i < std::min(m, k); ++i) {
+            pq.push({matrix[i][0], i, 0});
+        }
+
+        int res = 0;
+
+        while (k--) {
+            auto [num, i, j] = pq.top();
+            pq.pop();
+
+            res = num;
+
+            if (j + 1 < n) {
+                pq.push({matrix[i][j + 1], i, j + 1});
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+1,  3,  5
+6,  7,  12
+11, 14, 14
+
+Time Complexity: O(k * log(std::min(m, k))), since in every iteration, pq will pop 1 element and push 1 elements
+Space Complexity: O(std::min(m, k))
+*/
+```
+
+#### 用 visited，代码更直观，如果直接用 matrix，visit 后把 matrix[i][j] 赋值为 INT_MAX，也可以，但代码不是很直观
+
+```cpp
+class Solution {
+public:
+    int kthSmallest(vector<vector<int>>& matrix, int k) {
+        // edge case
+        if (matrix.empty() || matrix[0].empty()) {
+            return INT_MAX;
+        }
+
+        const int m = matrix.size();
+        const int n = matrix[0].size();
+
+        if (k <= 0 || k > m * n) {
+            return INT_MAX;
+        }
+
+        using T = std::tuple<int, int, int>;
+        auto cmp = [](const T& a, const T& b) {
+            return std::get<0>(a) > std::get<0>(b);
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+        std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
+
+        pq.push({matrix[0][0], 0, 0});
+        visited[0][0] = true;
+
+        int res = 0;
+
+        while (k--) {
+            auto [num, i, j] = pq.top();
+            pq.pop();
+
+            res = num;
+
+            if (i + 1 < m && !visited[i + 1][j]) {
+                pq.push({matrix[i + 1][j], i + 1, j});
+                visited[i + 1][j] = true;
+            }
+
+            if (j + 1 < n && !visited[i][j + 1]) {
+                pq.push({matrix[i][j + 1], i, j + 1});
+                visited[i][j + 1] = true;
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+1,  3,  5
+6,  7,  12
+11, 14, 14
+
+Time Complexity: O(m * n + k * log(k)), since in every iteration, pq will pop 1 element and push 2 elements
+Space Complexity: O(m * n)
+*/
+```
+
+#### 不用 visited
+
+```cpp
+class Solution {
+public:
+    int kthSmallest(vector<vector<int>>& matrix, int k) {
+        // edge case
+        if (matrix.empty() || matrix[0].empty()) {
+            return INT_MAX;
+        }
+
+        const int m = matrix.size();
+        const int n = matrix[0].size();
+
+        if (k <= 0 || k > m * n) {
+            return INT_MAX;
+        }
+
+        using T = std::tuple<int, int, int>;
+        auto cmp = [](const T& a, const T& b) {
+            return std::get<0>(a) > std::get<0>(b);
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+
+        pq.push({matrix[0][0], 0, 0});
+        matrix[0][0] = INT_MAX;
+
+        int res = 0;
+
+        while (k--) {
+            auto [num, i, j] = pq.top();
+            pq.pop();
+
+            res = num;
+
+            if (i + 1 < m && matrix[i + 1][j] != INT_MAX) {
+                pq.push({matrix[i + 1][j], i + 1, j});
+                matrix[i + 1][j] = INT_MAX;
+            }
+
+            if (j + 1 < n && matrix[i][j + 1] != INT_MAX) {
+                pq.push({matrix[i][j + 1], i, j + 1});
+                matrix[i][j + 1] = INT_MAX;
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+1,  3,  5
+6,  7,  12
+11, 14, 14
+
+Time Complexity: O(k * log(k)), since in every iteration, pq will pop 1 element and push 2 elements
+Space Complexity: O(k)
+*/
+```
+
+### [355. Design Twitter](https://leetcode.com/problems/design-twitter/)
+
+#### tag - 典型的 oop 题目，面试 amazon 这类公司前可以复习下
+
+```cpp
+class Twitter {
+private:
+    struct Tweet {
+        int tweetId;
+        long long timestamp;
+    };
+    
+    struct Node {
+        long long timestamp;
+        int userId;
+        int index;
+    };
+
+    long long timer = 0;
+
+    std::unordered_map<int, std::vector<Tweet>> tweets; // key: userId, value: tweets
+    std::unordered_map<int, std::unordered_set<int>> following; // key: userId, value: followeeIds
+
+public:
+    Twitter() {}
+    
+    void postTweet(int userId, int tweetId) {
+        tweets[userId].push_back({tweetId, timer++});
+    }
+    
+    vector<int> getNewsFeed(int userId) {
+        std::vector<int> res;
+
+        auto cmp = [](const Node& a, const Node& b) {
+            return a.timestamp < b.timestamp;
+        };
+        std::priority_queue<Node, std::vector<Node>, decltype(cmp)> pq;
+
+        auto pushLatest = [&](const int uid) {
+            if (tweets[uid].empty()) {
+                return;
+            }
+
+            pq.push({tweets[uid].back().timestamp, uid, (int)tweets[uid].size() - 1});
+        };
+
+        pushLatest(userId);
+
+        for (const auto followeeId : following[userId]) {
+            pushLatest(followeeId);
+        }
+
+        int k = 10;
+
+        while (k-- && !pq.empty()) {
+            auto [ts, uid, idx] = pq.top();
+            pq.pop();
+
+            res.push_back(tweets[uid][idx].tweetId);
+
+            if (idx > 0) {
+                pq.push({tweets[uid][idx - 1].timestamp, uid, idx - 1});
+            }
+        }
+
+        return res;
+    }
+    
+    void follow(int followerId, int followeeId) {
+        if (followerId == followeeId) {
+            return;
+        }
+
+        following[followerId].insert(followeeId);
+    }
+    
+    void unfollow(int followerId, int followeeId) {
+        if (followerId == followeeId) {
+            return;
+        }
+
+        following[followerId].erase(followeeId);
+    }
+};
+
+/**
+ * Your Twitter object will be instantiated and called as such:
+ * Twitter* obj = new Twitter();
+ * obj->postTweet(userId,tweetId);
+ * vector<int> param_2 = obj->getNewsFeed(userId);
+ * obj->follow(followerId,followeeId);
+ * obj->unfollow(followerId,followeeId);
+ */
+
+ /*
+ k = 10
+ m = average size of user + folloees
+ n = std::min(k, m)
+ Time Complexity: O(m + n * log(m))
+ Space Complexity: O(m)
+ */
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
+```
+
+### []()
+
+```cpp
+
 ```
