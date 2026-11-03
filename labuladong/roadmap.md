@@ -10004,22 +10004,277 @@ public:
  */
 ```
 
-### []()
+### [215. Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/)
+
+#### tag - 重点掌握 min heap，quick select 也可进阶掌握
+
+#### max heap
 
 ```cpp
+class Solution {
+public:
+    int findKthLargest(vector<int>& nums, int k) {
+        // edge case
+        if (nums.empty() || k <= 0 || k > nums.size()) {
+            return INT_MIN;
+        }
 
+        std::priority_queue<int, std::vector<int>, std::less<int>> pq;
+
+        for (const auto num : nums) {
+            pq.push(num);
+        }
+
+        int res = 0;
+
+        while (k--) {
+            res = pq.top();
+            pq.pop();
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n)), where n is nums.size()
+Space Complexity: O(n)
+*/
 ```
 
-### []()
+#### min heap
 
 ```cpp
+class Solution {
+public:
+    int findKthLargest(vector<int>& nums, int k) {
+        // edge case
+        if (nums.empty() || k <= 0 || k > nums.size()) {
+            return INT_MIN;
+        }
 
+        std::priority_queue<int, std::vector<int>, std::greater<int>> pq;
+
+        for (const auto num : nums) {
+            pq.push(num);
+
+            if (pq.size() > k) {
+                pq.pop();
+            }
+        }
+
+        return pq.top();
+    }
+};
+
+/*
+Time Complexity: O(n * log(k)), where n is nums.size(), there are at most k elements in the pq
+Space Complexity: O(k)
+*/
 ```
 
-### []()
+#### quick select
 
 ```cpp
+class Solution {
+public:
+    int findKthLargest(vector<int>& nums, int k) {
+        // edge case
+        if (nums.empty() || k <= 0 || k > nums.size()) {
+            return INT_MIN;
+        }
 
+        int target = k - 1;
+        int left = 0;
+        int right = nums.size() - 1;
+
+        while (left <= right) {
+            int pivotIndex = partition(nums, left, right);
+
+            if (pivotIndex == target) {
+                return nums[pivotIndex];
+            } else if (pivotIndex > target) {
+                right = pivotIndex - 1;
+            } else /*if (pivotIndex < target)*/ {
+                left = pivotIndex + 1;
+            } 
+        }
+
+        return -1;
+    }
+
+private:
+    int partition(vector<int>& nums, int left, int right) {
+        int pivot = nums[right];
+        int i = left;
+
+        for (int j = left; j < right; ++j) {
+            if (nums[j] > pivot) {
+                std::swap(nums[i], nums[j]);
+                ++i;
+            }
+        }
+
+        std::swap(nums[i], nums[right]);
+
+        return i;
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(1)
+*/
+```
+
+### [451. Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/)
+
+#### tag - bucket sort 解法挺有趣，推荐掌握
+
+#### max heap
+
+```cpp
+class Solution {
+public:
+    string frequencySort(string s) {
+        // edge case
+        if (s.empty()) {
+            return s;
+        }
+
+        std::unordered_map<char, int> frequency; // key: char, value: frequency
+
+        for (const auto ch : s) {
+            ++frequency[ch];
+        }
+
+        using T = std::pair<char, int>;
+
+        auto cmp = [](const T& a, const T& b) {
+            return a.second < b.second;
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+
+        for (const auto item : frequency) {
+            pq.push(item);
+        }
+
+        std::string res;
+        res.reserve(s.size());
+
+        while (!pq.empty()) {
+            auto [ch, count] = pq.top();
+            pq.pop();
+
+            res.append(count, ch);
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n + k * log(k)), where n is s.size(), k is size of different char
+Space Complexity: O(n + k)
+*/
+```
+
+#### bucket sort
+
+```cpp
+class Solution {
+public:
+    string frequencySort(string s) {
+        // edge case
+        if (s.empty()) {
+            return s;
+        }
+
+        std::unordered_map<char, int> frequency; // key: char, value: frequency
+
+        for (const auto ch : s) {
+            ++frequency[ch];
+        }
+
+        std::vector<std::string> buckets(s.size() + 1); // index: frequency
+
+        for (const auto& [ch, count] : frequency) {
+            buckets[count].push_back(ch);
+        }
+
+        std::string res;
+        res.reserve(s.size());
+
+        for (int i = buckets.size() - 1; i >= 1; --i) {
+            if (buckets[i].empty()) {
+                continue;
+            }
+
+            for (const auto ch : buckets[i]) {
+                res.append(i, ch);
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n), where n is s.size()
+Space Complexity: O(n)
+*/
+```
+
+### [703. Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/)
+
+#### tag - 这题由于 nums 是无序的，所以不能用 i < std::min(k, (int)nums.size())
+
+```cpp
+class KthLargest {
+private:
+    int k_;
+    // min heap
+    std::priority_queue<int, std::vector<int>, std::greater<int>> pq_;
+
+public:
+    KthLargest(int k, vector<int>& nums) {
+        // edge case
+        if (k <= 0) {
+            return;
+        }
+
+        k_ = k;
+
+        for (int i = 0; i < nums.size(); ++i) {
+            pq_.push(nums[i]);
+
+            if (pq_.size() > k_) {
+                pq_.pop();
+            }
+        }
+    }
+    
+    int add(int val) {
+        pq_.push(val);
+
+        if (pq_.size() > k_) {
+            pq_.pop();
+        }
+
+        return pq_.top();
+    }
+};
+
+/*
+Time Complexity: KthLargest: O(n * log(k)), add: O(log(k))
+Space Complexity: O(k)
+*/
+
+/**
+ * Your KthLargest object will be instantiated and called as such:
+ * KthLargest* obj = new KthLargest(k, nums);
+ * int param_1 = obj->add(val);
+ */
 ```
 
 ### []()
