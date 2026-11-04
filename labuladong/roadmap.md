@@ -10277,22 +10277,553 @@ Space Complexity: O(k)
  */
 ```
 
-### []()
+### [347. Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/)
+
+#### tag - 这题用 min heap 比 max heap 好。另外这题最有复杂度的解法除了用 bucket sort，用 quick select 也可以是时间复杂度到 O(n)，quick select 需要练习下，quick select while (left < right)：当搜索区间只剩一个元素时直接退出循环，因为此时 left == right == target，无需再执行 partition，但需要在循环外处理结果。while (left <= right)：当搜索区间只剩一个元素时仍会执行一次 partition，通过 pivotIndex == target 退出循环，可以在循环内直接返回结果。两种写法都正确，区别在于是否执行最后一次 partition，以及循环结束后如何处理结果。
+
+#### max heap
 
 ```cpp
+class Solution {
+public:
+    vector<int> topKFrequent(vector<int>& nums, int k) {
+        // edge case
+        if (nums.empty() || k <= 0) {
+            return {};
+        }
 
+        std::unordered_map<int, int> frequency; // key: num, value: frequency
+
+        for (const auto num : nums) {
+            ++frequency[num];
+        }
+
+        using T = std::pair<int, int>;
+
+        // max heap
+        auto cmp = [](const T& a, const T& b) {
+            return a.second < b.second;
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+
+        for (const auto& item : frequency) {
+            pq.push(item);
+        }
+
+        std::vector<int> res;
+        res.reserve(k);
+
+        while (k-- && !pq.empty()) {
+            auto [num, count] = pq.top();
+            pq.pop();
+
+            res.push_back(num);
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n + m * log(m) + k * log(m)), where n is nums.size(), m is size of different num
+Space Complexity: O(m + k)
+*/
 ```
 
-### []()
+#### min heap
 
 ```cpp
+class Solution {
+public:
+    vector<int> topKFrequent(vector<int>& nums, int k) {
+        // edge case
+        if (nums.empty() || k <= 0) {
+            return {};
+        }
 
+        std::unordered_map<int, int> frequency; // key: num, value: frequency
+
+        for (const auto num : nums) {
+            ++frequency[num];
+        }
+
+        using T = std::pair<int, int>;
+
+        // min heap
+        auto cmp = [](const T& a, const T& b) {
+            return a.second > b.second;
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+
+        for (const auto& item : frequency) {
+            pq.push(item);
+
+            if (pq.size() > k) {
+                pq.pop();
+            }
+        }
+
+        std::vector<int> res;
+        res.reserve(k);
+
+        while (!pq.empty()) {
+            auto [num, count] = pq.top();
+            pq.pop();
+
+            res.push_back(num);
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n + m * log(k) + k * log(k)), where n is nums.size(), m is size of different num
+Space Complexity: O(m + k)
+*/
 ```
 
-### []()
+#### bucket sort
 
 ```cpp
+class Solution {
+public:
+    vector<int> topKFrequent(vector<int>& nums, int k) {
+        // edge case
+        if (nums.empty() || k <= 0) {
+            return {};
+        }
 
+        std::unordered_map<int, int> frequency; // key: num, value: frequency
+
+        for (const auto num : nums) {
+            ++frequency[num];
+        }
+
+        std::vector<std::vector<int>> buckets(nums.size() + 1); // index: frequency
+        for (const auto& [num, count] : frequency) {
+            buckets[count].push_back(num);
+        }
+
+        std::vector<int> res;
+        res.reserve(k);
+
+        for (int i = buckets.size() - 1; i > 0; --i) {
+            if (buckets[i].empty()) {
+                continue;
+            }
+
+            for (const auto num : buckets[i]) {
+                res.push_back(num);
+
+                if (res.size() == k) {
+                    return res;
+                }
+            }
+        }
+
+        return {};
+    }
+};
+
+/*
+Time Complexity: O(n), where n is nums.size()
+Space Complexity: O(n)
+*/
+```
+
+#### quick select
+
+```cpp
+class Solution {
+public:
+    vector<int> topKFrequent(vector<int>& nums, int k) {
+        // edge case
+        if (nums.empty() || k <= 0) {
+            return {};
+        }
+
+        std::unordered_map<int, int> frequency; // key: num, value: frequency
+
+        for (const auto num : nums) {
+            ++frequency[num];
+        }
+
+        // quick select
+        std::vector<std::pair<int, int>> items(frequency.begin(), frequency.end());
+        int left = 0;
+        int right = items.size() - 1;
+        const int target = k - 1;
+
+        while (left <= right) {
+            int mid = partition(items, left, right);
+
+            if (mid == target) {
+                break;
+            } else if (mid > target) {
+                right = mid - 1;
+            } else /*if (mid < target)*/ {
+                left = mid + 1;
+            }
+        }
+
+        std::vector<int> res;
+        res.reserve(k);
+
+        for (int i = 0; i < k; ++i) {
+            res.push_back(items[i].first);
+        }
+
+        return res;
+    }
+
+private:
+    int partition(std::vector<std::pair<int, int>>& items, int left, int right) {
+        auto pivot = items[right];
+        int i = left;
+
+        for (int j = left; j < right; ++j) {
+            if (items[j].second > pivot.second) {
+                std::swap(items[j], items[i]);
+                ++i;
+            }
+        }
+
+        std::swap(items[i], items[right]);
+
+        return i;
+    }
+};
+
+/*
+Time Complexity: O(n), where n is nums.size(), m is size of different num
+Space Complexity: O(m + k)
+*/
+```
+
+### [692. Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/)
+
+#### tag - 跟 347 一模一样
+
+#### max heap
+
+```cpp
+class Solution {
+public:
+    vector<string> topKFrequent(vector<string>& words, int k) {
+        // edge case
+        if (words.empty() || k <= 0) {
+            return {};
+        }
+
+        std::unordered_map<string, int> frequency; // key: word, value: frequency
+
+        for (const auto& word : words) {
+            ++frequency[word];
+        }
+
+        using T = std::pair<string, int>;
+
+        // max heap
+        auto cmp = [](const T& a, const T& b) {
+            if (a.second != b.second) {
+                return a.second < b.second;
+            }
+            return a.first > b.first;
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+
+        for (const auto& item : frequency) {
+            pq.push(item);
+        }
+
+        std::vector<string> res;
+        res.reserve(k);
+
+        while (k-- && !pq.empty()) {
+            auto [word, count] = pq.top();
+            pq.pop();
+
+            res.push_back(word);
+        }
+
+        return res;
+    }
+};
+
+/**
+ * Time Complexity: O(n + m * log(m) * L + k * log(m) * L)
+ * Space Complexity: O(m + k) (excluding string storage)
+ *
+ * n: words.size()
+ * m: number of distinct words
+ * L: maximum word length
+ */
+```
+
+#### min heap
+
+```cpp
+class Solution {
+public:
+    vector<string> topKFrequent(vector<string>& words, int k) {
+        // edge case
+        if (words.empty() || k <= 0) {
+            return {};
+        }
+
+        std::unordered_map<string, int> frequency; // key: word, value: frequency
+
+        for (const auto& word : words) {
+            ++frequency[word];
+        }
+
+        using T = std::pair<string, int>;
+
+        // min heap
+        auto cmp = [](const T& a, const T& b) {
+            if (a.second != b.second) {
+                return a.second > b.second;
+            }
+            return a.first < b.first;
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq;
+
+        for (const auto& item : frequency) {
+            pq.push(item);
+
+            if (pq.size() > k) {
+                pq.pop();
+            }
+        }
+
+        std::vector<string> res;
+        res.reserve(k);
+
+        while (!pq.empty()) {
+            auto [word, count] = pq.top();
+            pq.pop();
+
+            res.push_back(word);
+        }
+
+        std::reverse(res.begin(), res.end());
+
+        return res;
+    }
+};
+
+/**
+ * Time Complexity: O(n + m * log(k) * L + k * log(k) * L)
+ * Space Complexity: O(m + k) (excluding string storage)
+ *
+ * n: words.size()
+ * m: number of distinct words
+ * L: maximum word length
+ */
+```
+
+#### bucket sort
+
+```cpp
+class Solution {
+public:
+    vector<string> topKFrequent(vector<string>& words, int k) {
+        // edge case
+        if (words.empty() || k <= 0) {
+            return {};
+        }
+
+        std::unordered_map<string, int> frequency; // key: word, value: frequency
+
+        for (const auto& word : words) {
+            ++frequency[word];
+        }
+
+        std::vector<std::vector<string>> buckets(words.size() + 1); // index: frequency
+
+        for (const auto& [word, count] : frequency) {
+            buckets[count].push_back(word);
+        }
+
+        std::vector<string> res;
+        res.reserve(k);
+
+        for (int i = buckets.size() - 1; i > 0; --i) {
+            if (buckets[i].empty()) {
+                continue;
+            }
+
+            std::sort(buckets[i].begin(), buckets[i].end());
+
+            for (const auto& word : buckets[i]) {
+                res.push_back(word);
+
+                if (res.size() == k) {
+                    return res;
+                }
+            }
+        }
+
+        return {};
+    }
+};
+
+/**
+ * Time Complexity: O(n * L + m * log(m) * L)
+ * Space Complexity: O(n + m) (excluding string storage)
+ *
+ * n: words.size()
+ * m: number of distinct words
+ * L: maximum word length
+ */
+```
+
+### [295. Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/)
+
+#### tag - two heaps. step 1: insert into lower, step 2: maintain ordering, step 3: balance heap sizes
+
+#### original version
+
+```cpp
+class MedianFinder {
+private:
+    // max heap
+    std::priority_queue<int, std::vector<int>, std::less<int>> lower;
+    // min heap
+    std::priority_queue<int, std::vector<int>, std::greater<int>> upper;
+
+public:
+    MedianFinder() {}
+    
+    void addNum(int num) {
+        // edge case
+        if (lower.empty() && upper.empty()) {
+            lower.push(num);
+            return;
+        } else if (lower.empty() && !upper.empty()) {
+            if (upper.top() >= num) {
+                lower.push(num);
+            } else {
+                lower.push(upper.top());
+                upper.pop();
+                upper.push(num);
+            }
+            return;
+        } else if (!lower.empty() && upper.empty()) {
+            if (lower.top() <= num) {
+                upper.push(num);
+            } else {
+                upper.push(lower.top());
+                lower.pop();
+                lower.push(num);
+            }
+            return;
+        }
+
+        // make sure lower.size() == upper.size() or lower.size() == upper.size() + 1
+        auto lowerNum = lower.top();
+        auto upperNum = upper.top();
+
+        if (lower.size() == upper.size()) {
+            if (num >= lowerNum && num <= upperNum) {
+                lower.push(num);
+            } else if (num < lowerNum) {
+                lower.push(num);
+            } else if (num > upperNum) {
+                lower.push(upper.top());
+                upper.pop();
+                upper.push(num);
+            }
+        } else /*if (lower.size() == upper.size() + 1)*/ {
+            if (num >= lowerNum && num <= upperNum) {
+                upper.push(num);
+            } else if (num < lowerNum) {
+                upper.push(lower.top());
+                lower.pop();
+                lower.push(num);
+            } else if (num > upperNum) {
+                upper.push(num);
+            }
+        }
+    }
+    
+    double findMedian() {
+        // edge case
+        if (lower.empty() && upper.empty()) {
+            return 0;
+        }
+
+        if (lower.size() == upper.size()) {
+            return ((double)lower.top() + (double)upper.top()) / 2;
+        } else /*if (lower.size() == upper.size() + 1)*/ {
+            return lower.top();
+        }
+    }
+};
+
+/**
+ * Your MedianFinder object will be instantiated and called as such:
+ * MedianFinder* obj = new MedianFinder();
+ * obj->addNum(num);
+ * double param_2 = obj->findMedian();
+ */
+```
+
+#### better version
+
+```cpp
+class MedianFinder {
+private:
+    // max heap
+    std::priority_queue<int, std::vector<int>, std::less<int>> lower;
+    // min heap
+    std::priority_queue<int, std::vector<int>, std::greater<int>> upper;
+
+public:
+    MedianFinder() {}
+    
+    void addNum(int num) {
+        // make sure lower.size() == upper.size() or lower.size() == upper.size() + 1
+        // step 1: insert into lower
+        lower.push(num);
+
+        // step 2: maintain ordering
+        upper.push(lower.top());
+        lower.pop();
+
+        // step 3: balance heap sizes
+        if (upper.size() > lower.size()) {
+            lower.push(upper.top());
+            upper.pop();
+        }
+    }
+    
+    double findMedian() {
+        // edge case
+        if (lower.empty() && upper.empty()) {
+            return 0;
+        }
+
+        if (lower.size() == upper.size()) {
+            return ((double)lower.top() + (double)upper.top()) / 2;
+        } else /*if (lower.size() == upper.size() + 1)*/ {
+            return lower.top();
+        }
+    }
+};
+
+/*
+Time Complexity: addNum: O(log(n)), findMedian: O(1)
+Space Complexity: O(n)
+*/
+
+/**
+ * Your MedianFinder object will be instantiated and called as such:
+ * MedianFinder* obj = new MedianFinder();
+ * obj->addNum(num);
+ * double param_2 = obj->findMedian();
+ */
 ```
 
 ### []()
