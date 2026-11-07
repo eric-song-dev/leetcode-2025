@@ -10826,22 +10826,221 @@ Space Complexity: O(n)
  */
 ```
 
-### []()
+### [870. Advantage Shuffle](https://leetcode.com/problems/advantage-shuffle/)
+
+#### tag - 这个 solution 背也要背下来，核心思路：田忌赛马，贪心策略：能赢就用刚好足够赢的最小数字，赢不了就拿最小数字去牺牲。
 
 ```cpp
+class Solution {
+public:
+    vector<int> advantageCount(vector<int>& nums1, vector<int>& nums2) {
+        // edge case
+        if (nums1.empty() || nums1.size() != nums2.size()) {
+            return {};
+        }
 
+        const int n = nums1.size();
+        
+        std::sort(nums1.begin(), nums1.end());
+
+        // sort nums2 while preserving original indices
+        std::vector<std::pair<int, int>> sortedNums2;
+        sortedNums2.reserve(n);
+
+        for (int i = 0; i < n; ++i) {
+            sortedNums2.push_back({nums2[i], i});
+        }
+        std::sort(sortedNums2.begin(), sortedNums2.end());
+
+        std::vector<int> res(n);
+
+        int left = 0;
+        int right = n - 1;
+
+        for (const auto num : nums1) {
+            if (num > sortedNums2[left].first) {
+                // win against the smallest remaining element
+                res[sortedNums2[left].second] = num;
+                ++left;
+            } else {
+                // sacrifice against the largest remaining element
+                res[sortedNums2[right].second] = num;
+                --right;
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n) + n)
+Space Complexity: O(n)
+*/
 ```
 
-### []()
+### [75. Sort Colors](https://leetcode.com/problems/sort-colors/)
+
+#### tag - 好题，三指针问题，遇到 0 时，可以执行 mid++，遇到 2 时，不能执行 mid++。核心区别在于：交换 0 时，我们知道换回来的元素是什么；交换 2 时，我们不知道换回来的元素是什么。面试的时候可以直接画图：0 0 0 left 1 1 1 mid unkown right 2 2 2
 
 ```cpp
+class Solution {
+public:
+    void sortColors(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) {
+            return;
+        }
 
+        const int n = nums.size();
+
+        int left = 0;
+        int mid = 0;
+        int right = n - 1;
+
+        while (mid <= right) {
+            if (nums[mid] == 0) {
+                std::swap(nums[mid++], nums[left++]);
+            } else if (nums[mid] == 1) {
+                mid++;  
+            } else /*if (nums[mid] == 2)*/ {
+                std::swap(nums[mid], nums[right--]);
+            }
+        }
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(1)
+*/
 ```
 
-### []()
+### [912. Sort an Array](https://leetcode.com/problems/sort-an-array/description/)
+
+#### tag - quick sort 这里一定要用 rand() 随机选择 pivot，不然会超时。quick sort 是前序遍历，merge sort 是后序遍历
+
+#### quick sort
 
 ```cpp
+class Solution {
+public:
+    vector<int> sortArray(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) {
+            return nums;
+        }
 
+        const int n = nums.size();
+        int left = 0;
+        int right = n - 1;
+
+        quickSort(nums, left, right);
+
+        return nums;
+    }
+
+private:
+    void quickSort(std::vector<int>& nums, int left, int right) {
+        // base case
+        if (left >= right) {
+            return;
+        }
+
+        int mid = partition(nums, left, right);
+        quickSort(nums, left, mid - 1);
+        quickSort(nums, mid + 1, right);
+    }
+
+    int partition(std::vector<int>& nums, int left, int right) {
+        int randIndex = left + rand() % (right - left + 1);
+        std::swap(nums[randIndex], nums[right]);
+
+        int pivot = nums[right];
+        int i = left;
+
+        for (int j = left; j < right; ++j) {
+            if (nums[j] < pivot) {
+                std::swap(nums[i], nums[j]);
+                ++i;
+            }
+        }
+
+        std::swap(nums[i], nums[right]);
+
+        return i;
+    }
+};
+
+/*
+Time Complexity: average: O(n * log(n)), worst case: O(n * n)
+Space Complexity: O(1)
+*/
+```
+
+#### merge sort
+
+```cpp
+class Solution {
+public:
+    vector<int> sortArray(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) {
+            return nums;
+        }
+
+        std::vector<int> temp(nums.size());
+
+        mergeSort(nums, temp, 0, nums.size() - 1);
+
+        return nums;
+    }
+
+    void mergeSort(std::vector<int>& nums, std::vector<int>& temp, int left, int right) {
+        // base case
+        if (left >= right) {
+            return;
+        }
+
+        int mid = left + (right - left) / 2;
+
+        mergeSort(nums, temp, left, mid);
+        mergeSort(nums, temp, mid + 1, right);
+
+        merge(nums, temp, left, mid, right);
+    }
+
+    void merge(std::vector<int>& nums, std::vector<int>& temp, int left, int mid, int right) {
+        int i = left;
+        int j = mid + 1;
+        int k = left;
+
+        while (i <= mid && j <= right) {
+            if (nums[i] < nums[j]) {
+                temp[k++] = nums[i++];
+            } else {
+                temp[k++] = nums[j++];
+            }
+        }
+
+        while (i <= mid) {
+            temp[k++] = nums[i++];
+        }
+
+        while (j <= right) {
+            temp[k++] = nums[j++];
+        }
+
+        for (int p = left; p <= right; ++p) {
+            nums[p] = temp[p];
+        }
+    }
+};
+
+/*
+Time Complexity: O(n * log(n))
+Space Complexity: O(n)
+*/
 ```
 
 ### []()
