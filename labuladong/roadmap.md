@@ -11043,10 +11043,38 @@ Space Complexity: O(n)
 */
 ```
 
-### []()
+### [198. House Robber](https://leetcode.com/problems/house-robber/)
 
 ```cpp
+class Solution {
+public:
+    int rob(vector<int>& nums) {
+        // edge case
+        if (nums.empty()) {
+            return 0;
+        }
 
+        const int n = nums.size();
+
+        // define dp table
+        // dp[i] represents max money robbing first i houses nums[0...i - 1]
+        std::vector<int> dp(n + 1, 0);
+        // initialize dp table, base case
+        dp[0] = 0;
+        dp[1] = nums[0];
+
+        for (int i = 2; i <= n; ++i) {
+            dp[i] = std::max(dp[i - 2] + nums[i - 1], dp[i - 1]);
+        }
+
+        return dp.back();
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(n)
+*/
 ```
 
 ### []()
