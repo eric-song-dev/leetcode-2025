@@ -1894,30 +1894,92 @@ public:
 
 #### tag - 好题
 
+#### sorting
+
 ```cpp
 class Solution {
 public:
     vector<vector<int>> merge(vector<vector<int>>& intervals) {
         // edge case
-        if (intervals.size() <= 1) return intervals;
+        if (intervals.size() <= 1) {
+            return intervals;
+        }
 
-        std::sort(intervals.begin(), intervals.end(), [](const vector<int>& a, const vector<int>& b) {
-            return a.front() < b.front();
-        });
+        std::sort(intervals.begin(), intervals.end());
 
         std::vector<std::vector<int>> res;
         res.push_back(intervals[0]);
+
         for (int i = 1; i < intervals.size(); ++i) {
-            if (intervals[i][0] <= res.back()[1]) {
-                res.back()[1] = std::max(intervals[i][1], res.back()[1]);
+            auto& prevInterval = res.back();
+            const auto& currentInterval = intervals[i];
+
+            if (prevInterval.back() >= currentInterval.front()) {
+                prevInterval = {prevInterval.front(), std::max(prevInterval.back(), currentInterval.back())};
             } else {
-                res.push_back(intervals[i]);
+                res.push_back(currentInterval);
             }
         }
 
         return res;
     }
 };
+```
+
+#### sweep line
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> merge(vector<vector<int>>& intervals) {
+        // edge case
+        if (intervals.size() <= 1) {
+            return intervals;
+        }
+
+        std::vector<std::pair<int, int>> events;
+
+        for (const auto& interval : intervals) {
+            events.push_back({interval.front(), 1});
+            events.push_back({interval.back(), -1});
+        }
+
+        std::sort(events.begin(), 
+                  events.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+            if (a.first == b.first) {
+                return a.second > b.second; // make sure 1 is before -1
+            }
+
+            return a.first < b.first;
+        });
+
+        std::vector<std::vector<int>> res;
+
+        int activeMeeting = 0;
+        int start = 0;
+
+        for (const auto& [time, delta] : events) {
+            if (activeMeeting == 0 && delta == 1) {
+                start = time;
+            }
+
+            activeMeeting += delta;
+
+            if (activeMeeting == 0) {
+                int end = time;
+                res.push_back({start, end});
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n))
+Space Complexity: O(n)
+*/
 ```
 
 ### [704. Binary Search](https://leetcode.com/problems/binary-search/)
@@ -8385,6 +8447,8 @@ public:
 
 #### tag - 可以用 path compression + union by size 去优化
 
+#### union find + path compression + union by size
+
 ```cpp
 class Solution {
 private:
@@ -8396,16 +8460,35 @@ private:
             return x;
         }
 
-        auto root = find(parent[x]);
-        parent[x] = root;
+        int root = find(parent[x]);
+        parent[x] = root; // path compression
         return root;
+    }
+
+    bool unite(int a, int b) {
+        int rootA = find(a);
+        int rootB = find(b);
+
+        if (rootA == rootB) {
+            return false;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
     }
 
 public:
     int findCircleNum(vector<vector<int>>& isConnected) {
         // edge case
-        if (isConnected.empty() || isConnected.size() != isConnected[0].size()) {
-            return -1;
+        if (isConnected.empty() || isConnected[0].empty() || isConnected.size() != isConnected[0].size()) {
+            return 0;
         }
 
         const int n = isConnected.size();
@@ -8416,39 +8499,157 @@ public:
             parent[i] = i;
         }
 
-        int provincesNum = n;
-
+        int provinces = n;
+        
         for (int i = 0; i < n; ++i) {
-            for (int j = i; j < n; ++j) {
-                if (isConnected[i][j] != 1) {
+            for (int j = i + 1; j < n; ++j) {
+                if (isConnected[i][j] == 0) {
                     continue;
                 }
 
-                auto rootI = find(i);
-                auto rootJ = find(j);
-
-                if (rootI == rootJ) {
+                if (!unite(i, j)) {
                     continue;
                 }
 
-                if (size[rootI] > size[rootJ]) {
-                    parent[rootJ] = rootI;
-                    size[rootI] += size[rootJ];
-                } else {
-                    parent[rootI] = rootJ;
-                    size[rootJ] += size[rootI];
-                }
-
-                --provincesNum;
+                --provinces;
             }
         }
 
-        return provincesNum;
+        return provinces;
     }
 };
 
 /*
-Time Complexity: O(n^2 * alpha(n)) = O(n^2)
+Time Complexity: O(n ^ 2 * alpha(n))
+Space Complexity: O(n)
+*/
+```
+
+#### dfs + adjacency list + 只遍历矩阵上三角
+
+```cpp
+class Solution {
+private:
+    void dfs(std::unordered_map<int, std::vector<int>>& graph,
+             std::unordered_set<int>& visited,
+             int city) {
+        // base case
+        if (visited.count(city)) {
+            return;
+        }
+
+        visited.insert(city);
+
+        for (const auto neighbor : graph[city]) {
+            if (visited.count(neighbor)) {
+                continue;
+            }
+
+            dfs(graph, visited, neighbor);
+        }
+    }
+
+public:
+    int findCircleNum(vector<vector<int>>& isConnected) {
+        // edge case
+        if (isConnected.empty() || isConnected[0].empty() || isConnected.size() != isConnected[0].size()) {
+            return 0;
+        }
+
+        const int n = isConnected.size();
+
+        // build a adjacency list
+        std::unordered_map<int, std::vector<int>> graph;
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                if (isConnected[i][j] == 0) {
+                    continue;
+                }
+
+                graph[i].push_back(j);
+                graph[j].push_back(i);
+            }
+        }
+
+        int provinces = 0;
+        std::unordered_set<int> visited;
+
+        for (int city = 0; city < n; ++city) {
+            if (visited.count(city)) {
+                continue;
+            }
+
+            ++provinces;
+            dfs(graph, visited, city);
+        }
+
+        return provinces;
+    }
+};
+
+/*
+Time Complexity: O(n ^ 2 + V + E), where V is n
+Space Complexity: O(V + E)
+*/
+```
+
+#### dfs + adjacency matrix
+
+```cpp
+class Solution {
+private:
+    void dfs(std::vector<std::vector<int>>& isConnected,
+             std::vector<int>& visited,
+             int city) {
+        const int n = isConnected.size();
+
+        // base case
+        if (visited[city]) {
+            return;
+        }
+
+        visited[city] = true;
+
+        for (int neighbor = 0; neighbor < n; ++neighbor) {
+            if (isConnected[city][neighbor] == 0) {
+                continue;
+            }
+
+            if (visited[neighbor]) {
+                continue;
+            }
+
+            dfs(isConnected, visited, neighbor);
+        }
+    }
+
+public:
+    int findCircleNum(vector<vector<int>>& isConnected) {
+        // edge case
+        if (isConnected.empty() || isConnected[0].empty() || isConnected.size() != isConnected[0].size()) {
+            return 0;
+        }
+
+        const int n = isConnected.size();
+
+        int provinces = 0;
+        std::vector<int> visited(n, false);
+
+        for (int city = 0; city < n; ++city) {
+            if (visited[city]) {
+                continue;
+            }
+
+            ++provinces;
+            dfs(isConnected, visited, city);
+        }
+
+        return provinces;
+    }
+};
+
+/*
+Time Complexity: O(n ^ 2)
 Space Complexity: O(n)
 */
 ```
@@ -11077,28 +11278,327 @@ Space Complexity: O(n)
 */
 ```
 
-### []()
+### [1319. Number of Operations to Make Network Connected](https://leetcode.com/problems/number-of-operations-to-make-network-connected/)
+
+#### tag - 一定要学会这道题的数学证明，可以把每个 connected component 看作森林里的一个 node，把森林看成一个图，所以至少需要 count - 1 才能连接起每个 connected component
+
+#### dfs + adjacency list
 
 ```cpp
+class Solution {
+public:
+    int makeConnected(int n, vector<vector<int>>& connections) {
+        // edge case
+        if (n <= 0 || connections.size() < n - 1) {
+            return -1;
+        }
 
+        // build a graph
+        std::unordered_map<int, std::vector<int>> graph;
+
+        for (const auto& connection : connections) {
+            auto a = connection.front();
+            auto b = connection.back();
+
+            graph[a].push_back(b);
+            graph[b].push_back(a);
+        }
+
+        std::unordered_set<int> visited;
+        int count = 0;
+
+        for (int computer = 0; computer < n; ++computer) {
+            if (visited.count(computer)) {
+                continue;
+            }
+
+            ++count;
+            dfs(graph, visited, computer);
+        }
+
+        return count - 1;
+    }
+
+private:
+    void dfs(std::unordered_map<int, std::vector<int>>& graph, 
+             std::unordered_set<int>& visited, 
+             int computer) {
+        // base case
+        if (visited.count(computer)) {
+            return;
+        }
+
+        visited.insert(computer);
+
+        for (const auto neighbor : graph[computer]) {
+            dfs(graph, visited, neighbor);
+        }
+    }
+};
+
+/*
+Time Complexity: O(V + E), where V is n, E is connections.size()
+Space Complexity: O(V + E)
+
+clarify: can I connect a computer with itself?
+
+count how many connected components do we have in this graph
+*/
 ```
 
-### []()
+#### Union Find + Path Compression（路径压缩）+ Union by Size（按集合大小合并）
 
 ```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
 
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root; // path compression
+        return root;
+    }
+
+    bool unite(int a, int b) {
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return false;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
+    }
+
+public:
+    int makeConnected(int n, vector<vector<int>>& connections) {
+        // edge case
+        if (n <= 0 || connections.size() < n - 1) {
+            return -1;
+        }
+
+        parent.resize(n);
+        size.resize(n, 1);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+        
+        int count = n;
+
+        for (const auto& connection : connections) {
+            const auto a = connection.front();
+            const auto b = connection.back();
+
+            if (unite(a, b)) {
+                --count;
+            }
+        }
+
+        return count - 1;
+    }
+};
+
+/*
+Time Complexity: O(V + E * alpha(V)) = nearly O(V + E), where V is n, E is connections.size(), alpha(V) is constant
+Space Complexity: O(V)
+*/
 ```
 
-### []()
+### [252. Meeting Rooms](https://leetcode.com/problems/meeting-rooms/)
+
+#### tag - 很好的学习 sweep line 的题目
+
+#### sorting
 
 ```cpp
+class Solution {
+public:
+    bool canAttendMeetings(vector<vector<int>>& intervals) {
+        // edge case
+        if (intervals.size() <= 1) {
+            return true;
+        }
 
+        std::sort(intervals.begin(), 
+                  intervals.end(), 
+                  [](const std::vector<int>& a, const std::vector<int>& b) {
+            return a.front() < b.front();
+        });
+
+        for (int i = 1; i < intervals.size(); ++i) {
+            const auto& prevInterval = intervals[i - 1];
+            const auto& currentInterval = intervals[i];
+
+            if (currentInterval.front() < prevInterval.back()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n) + n) = O(n * log(n))
+Space Complexity: O(log(n)), since std::sort() uses O(log(n)) auxiliary space
+*/
 ```
 
-### []()
+#### sweep line
 
 ```cpp
+class Solution {
+public:
+    bool canAttendMeetings(vector<vector<int>>& intervals) {
+        // edge case
+        if (intervals.size() <= 1) {
+            return true;
+        }
 
+        std::vector<std::pair<int, int>> events;
+
+        for (const auto& interval : intervals) {
+            events.push_back({interval.front(), 1});
+            events.push_back({interval.back(), -1});
+        }
+
+        std::sort(events.begin(), 
+                  events.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+            if (a.first == b.first) {
+                return a.second < b.second; // make sure -1 is before 1
+            }
+
+            return a.first < b.first;
+        });
+
+        int activeMeeting = 0;
+
+        for (const auto& [time, delta] : events) {
+            activeMeeting += delta;
+
+            if (activeMeeting > 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n) + n) = O(n * log(n))
+Space Complexity: O(n + log(n)) = O(n)
+*/
+```
+
+### [253. Meeting Rooms II](https://leetcode.com/problems/meeting-rooms-ii/)
+
+#### tag - 跟 252. Meeting Rooms 一模一样
+
+#### sweep line
+
+```cpp
+class Solution {
+public:
+    int minMeetingRooms(vector<vector<int>>& intervals) {
+                // edge case
+        if (intervals.size() <= 1) {
+            return intervals.size();
+        }
+
+        std::vector<std::pair<int, int>> events;
+
+        for (const auto& interval : intervals) {
+            events.push_back({interval.front(), 1});
+            events.push_back({interval.back(), -1});
+        }
+
+        std::sort(events.begin(), 
+                  events.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+            if (a.first == b.first) {
+                return a.second < b.second; // make sure -1 is before 1
+            }
+
+            return a.first < b.first;
+        });
+
+        int activeMeeting = 0;
+        int maxActiveMeeting = INT_MIN;
+
+        for (const auto& [time, delta] : events) {
+            activeMeeting += delta;
+
+            maxActiveMeeting = std::max(maxActiveMeeting, activeMeeting);
+        }
+
+        return maxActiveMeeting;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n) + n) = O(n * log(n))
+Space Complexity: O(n + log(n)) = O(n)
+*/
+```
+
+### [2406. Divide Intervals Into Minimum Number of Groups](https://leetcode.com/problems/divide-intervals-into-minimum-number-of-groups/)
+
+#### tag - 跟 252. Meeting Rooms 一模一样，就是证明有点难，建议直接画图证明给面试官看
+
+#### sweep line
+
+```cpp
+class Solution {
+public:
+    int minGroups(vector<vector<int>>& intervals) {
+        // edge case
+        if (intervals.size() <= 1) {
+            return intervals.size();
+        }
+
+        std::vector<std::pair<int, int>> events;
+        for (const auto& interval : intervals) {
+            events.push_back({interval.front(), 1});
+            events.push_back({interval.back(), -1});
+        }
+
+        std::sort(events.begin(), 
+                  events.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+            if (a.first == b.first) {
+                return a.second > b.second; // make sure 1 is before -1
+            }
+
+            return a.first < b.first;
+        });
+
+        int overlappingInterval = 0;
+        int maxOverlappingInterval = INT_MIN;
+
+        for (const auto& [num, delta] : events) {
+            overlappingInterval += delta;
+
+            maxOverlappingInterval = std::max(maxOverlappingInterval, overlappingInterval);
+        }
+
+        return maxOverlappingInterval;
+    }
+};
 ```
 
 ### []()
