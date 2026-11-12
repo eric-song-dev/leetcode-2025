@@ -11918,10 +11918,60 @@ Space Complexity: worst case: O(n / 2) = O(n)
 */
 ```
 
-### []()
+### [366. Find Leaves of Binary Tree](https://leetcode.com/problems/find-leaves-of-binary-tree/)
+
+#### tag - 好题，postorder DFS，height 为 0 的放在 res[0]
 
 ```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+private:
+    int height(TreeNode* root, std::vector<std::vector<int>>& res) {
+        // base case
+        if (!root) {
+            return -1;
+        }
 
+        int h = std::max(height(root->left, res), height(root->right, res)) + 1;
+        
+        if (h == res.size()) {
+            res.push_back({});
+        }
+
+        res[h].push_back(root->val);
+
+        return h;
+    }
+
+public:
+    vector<vector<int>> findLeaves(TreeNode* root) {
+        // edge case
+        if (!root) {
+            return {};
+        }
+
+        std::vector<std::vector<int>> res;
+        height(root, res);
+        return res;
+    }
+};
+
+/*
+res[h] contains all nodes with height h.
+
+Time Complexity: O(n), where n is the size of nodes
+Space Complexity: O(h), in average, h = log(n), in worst case, h = n
+*/
 ```
 
 ### []()
