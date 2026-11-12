@@ -1964,12 +1964,12 @@ public:
                 start = time;
             }
 
-            activeMeeting += delta;
-
-            if (activeMeeting == 0) {
+            if (activeMeeting == 1 && delta == -1) {
                 int end = time;
                 res.push_back({start, end});
             }
+
+            activeMeeting += delta;
         }
 
         return res;
@@ -11419,7 +11419,7 @@ Space Complexity: O(V)
 
 ### [252. Meeting Rooms](https://leetcode.com/problems/meeting-rooms/)
 
-#### tag - 很好的学习 sweep line 的题目
+#### tag - 很好的学习 sweep line 的题目，做 sweep line 最重要的是先画图，然后思路就出来了
 
 #### sorting
 
@@ -11601,28 +11601,321 @@ public:
 };
 ```
 
-### []()
+### [1229. Meeting Scheduler](https://leetcode.com/problems/meeting-scheduler/)
+
+#### tag - 这道题属于如何计算 intersect interval，还挺有意思
+
+#### sweep line
 
 ```cpp
+class Solution {
+public:
+    vector<int> minAvailableDuration(vector<vector<int>>& slots1, vector<vector<int>>& slots2, int duration) {
+        // edge case
+        if (slots1.empty() || slots2.empty() || duration <= 0) {
+            return {};
+        }
 
+        std::vector<std::pair<int, int>> events;
+        for (const auto& slot : slots1) {
+            events.push_back({slot.front(), 1});
+            events.push_back({slot.back(), -1});
+        }
+        for (const auto& slot : slots2) {
+            events.push_back({slot.front(), 1});
+            events.push_back({slot.back(), -1});
+        }
+
+        std::sort(events.begin(), 
+                  events.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+            if (a.first == b.first) {
+                return a.second < b.second;
+            }
+
+            return a.first < b.first;
+        });
+
+        int activeEvent = 0;
+        int start = 0;
+
+        for (const auto& [time, delta] : events) {
+            if (delta == 1) {
+                start = time;
+            }
+
+            if (activeEvent > 1 && delta == -1) {
+                int end = time;
+                if (end - start >= duration) {
+                    return {start, start + duration};
+                }
+            }
+
+            activeEvent += delta;
+        }
+
+        return {};
+    }
+};
+
+/*
+Time Complexity: O((m + n) * log(m + n)), where m is slots1.size(), n is slots2.size()
+Space Complexity: O(m + n)
+*/
 ```
 
-### []()
+### [986. Interval List Intersections](https://leetcode.com/problems/interval-list-intersections/)
+
+#### tag - 好题，非常好的练习 sweep line 和 two pointer 的题目，两种解法都要会，做这种题最好的方式就是先画图，然后思路就很容易出来了
+
+#### sweep line
 
 ```cpp
+class Solution {
+public:
+    vector<vector<int>> intervalIntersection(vector<vector<int>>& firstList, vector<vector<int>>& secondList) {
+        // edge case
+        if (firstList.empty() || secondList.empty()) {
+            return {};
+        }
 
+        std::vector<std::pair<int, int>> events;
+        for (const auto& interval : firstList) {
+            events.push_back({interval.front(), 1});
+            events.push_back({interval.back(), -1});
+        }
+        for (const auto& interval : secondList) {
+            events.push_back({interval.front(), 1});
+            events.push_back({interval.back(), -1});
+        }
+
+        std::sort(events.begin(), 
+                  events.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+            if (a.first == b.first) {
+                return a.second > b.second; // make sure 1 is before -1
+            }
+
+            return a.first < b.first;
+        });
+
+        std::vector<std::vector<int>> res;
+        int activeEvent = 0;
+        int start = 0;
+
+        for (const auto& [time, delta] : events) {
+            if (activeEvent == 1 && delta == 1) {
+                start = time;
+            }
+
+            if (activeEvent == 2 && delta == -1) {
+                int end = time;
+                res.push_back({start, end});
+            }
+
+            activeEvent += delta;
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O((m + n) * log(m + n)), where m is firstList.size(), n is secondList.size()
+Space Complexity: O(m + n)
+*/
 ```
 
-### []()
+#### two pointers
 
 ```cpp
+class Solution {
+public:
+    vector<vector<int>> intervalIntersection(vector<vector<int>>& firstList, vector<vector<int>>& secondList) {
+        // edge case
+        if (firstList.empty() || secondList.empty()) {
+            return {};
+        }
 
+        std::vector<std::vector<int>> res;
+
+        int i = 0;
+        int j = 0;
+
+        while (i < firstList.size() && j < secondList.size()) {
+            const auto& a = firstList[i];
+            const auto& b = secondList[j];
+
+            int start = std::max(a.front(), b.front());
+            int end = std::min(a.back(), b.back());
+
+            if (start <= end) {
+                res.push_back({start, end});
+            }
+
+            if (a.back() <= b.back()) {
+                ++i;
+            } else {
+                ++j;
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(m + n), where m is firstList.size(), n is secondList.size()
+Space Complexity: O(1)
+*/
 ```
 
-### []()
+### [1094. Car Pooling](https://leetcode.com/problems/car-pooling/)
+
+#### tag - 经典题，不过挺简单的，用 sweep line 的时候注意下可以把 1, -1 直接替换成 trip[0], -trip[0] 更直观。difference array 的解法值得掌握。
+
+#### sweep line
 
 ```cpp
+class Solution {
+public:
+    bool carPooling(vector<vector<int>>& trips, int capacity) {
+        // edge case
+        if (trips.empty() || capacity <= 0) {
+            return false;
+        }
 
+        std::vector<std::pair<int, int>> events;
+        for (const auto& trip : trips) {
+            events.push_back({trip[1], trip[0]});
+            events.push_back({trip[2], -trip[0]});
+        }
+
+        std::sort(events.begin(), 
+                  events.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+            if (a.first == b.first) {
+                return a.second < b.second; // make sure -1 is before 1
+            }
+
+            return a.first < b.first;
+        });
+
+        int currentCapacity = 0;
+
+        for (const auto& [time, delta] : events) {
+            currentCapacity += delta;
+
+            if (currentCapacity > capacity) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n) + n) = O(n * log(n)), where n is trips.size()
+Space Complexity: O(n + log(n)) = O(n)
+*/
+```
+
+#### difference array
+
+```cpp
+class Solution {
+public:
+    bool carPooling(vector<vector<int>>& trips, int capacity) {
+        // edge case
+        if (trips.empty() || capacity <= 0) {
+            return false;
+        }
+
+        std::vector<int> diff(1001, 0);
+
+        for (const auto& trip : trips) {
+            const auto& carCapacity = trip[0];
+            const auto& from = trip[1];
+            const auto& to = trip[2];
+
+            diff[from] += carCapacity;
+            diff[to] -= carCapacity;
+        }
+
+        int currentCapacity = 0;
+
+        for (const auto delta : diff) {
+            currentCapacity += delta;
+
+            if (currentCapacity > capacity) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+/*
+Time Complexity: O(n), where n is trips.size()
+Space Complexity: O(1001) = O(1)
+*/
+```
+
+### [224. Basic Calculator](https://leetcode.com/problems/basic-calculator/)
+
+#### tag - 好题，经典，而且感觉特别容易被考到，多背多做
+
+```cpp
+class Solution {
+public:
+    int calculate(string s) {
+        // edge case
+        if (s.empty()) {
+            return 0;
+        }
+
+        std::stack<std::pair<long long, int>> stk; // <prevRes, prevSign>
+        long long res = 0;
+        int sign = 1;
+        int n = s.size();
+
+        for (int i = 0; i < n; ++i) {
+            if (std::isdigit(s[i])) {
+                long long num = 0;
+                while (i < n && std::isdigit(s[i])) {
+                    num = num * 10 + (s[i] - '0');
+                    ++i;
+                }
+
+                res += sign * num;
+                --i; // since outer loop will do ++i
+            } else if (s[i] == '+') {
+                sign = 1;
+            } else if (s[i] == '-') {
+                sign = -1;
+            } else if (s[i] == '(') {
+                stk.push({res, sign});
+
+                res = 0;
+                sign = 1;
+            } else if (s[i] == ')') {
+                const auto [prevRes, prevSign] = stk.top();
+                stk.pop();
+
+                res = prevRes + prevSign * res;
+            }
+        }
+
+        return static_cast<int>(res);
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: worst case: O(n / 2) = O(n)
+*/
 ```
 
 ### []()
