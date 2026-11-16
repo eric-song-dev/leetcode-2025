@@ -2,7 +2,7 @@
 
 ### 复习范围
 
-1. 复杂度分析（各个数据结构和算法，比如不同图的数据结构如 adjacency list 等，树，排序，priority queue）
+1. 复杂度分析（各个数据结构和算法，比如不同图的数据结构如 adjacency list 等，树，排序，priority queue），adjacency list 不仅可以用 std::vector<std::vector<int>> graph; 构建，如果数据比较稀疏也可以用 std::unordered_map<int, std::vector<int>> graph; 构建
 2. 各个解题方法的模板
 3. 树和图的关系
 4. priority_queue 的使用，尤其是 cmp 的比大小
@@ -4785,6 +4785,60 @@ public:
 
 ```cpp
 class Solution {
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, 1},
+        {0, -1},
+        {1, 0},
+        {-1, 0},
+    };
+
+    void bfs(std::vector<std::vector<char>>& grid, int x, int y) {
+        const int m = grid.size();
+        const int n = grid[0].size();
+
+        std::queue<std::pair<int, int>> q;
+        q.push({x, y});
+        grid[x][y] = '0';
+
+        while (!q.empty()) {
+            auto current = q.front();
+            q.pop();
+
+            for (const auto& [dx, dy] : directions) {
+                int nextX = current.first + dx;
+                int nextY = current.second + dy;
+
+                if (nextX < 0 || nextX >= m ||
+                    nextY < 0 || nextY >= n ||
+                    grid[nextX][nextY] == '0') {
+                    continue;
+                }
+
+                q.push({nextX, nextY});
+                grid[nextX][nextY] = '0';
+            }
+        }
+    }
+
+    void dfs(std::vector<std::vector<char>>& grid, int x, int y) {
+        const int m = grid.size();
+        const int n = grid[0].size();
+
+        // base case
+        if (x < 0 || x >= m ||
+            y < 0 || y >= n ||
+            grid[x][y] == '0') {
+            return;
+        }
+
+        grid[x][y] = '0';
+
+        for (const auto& [dx, dy] : directions) {
+            dfs(grid, x + dx, y + dy);
+        }
+    }
+
 public:
     int numIslands(vector<vector<char>>& grid) {
         // edge case
@@ -4792,73 +4846,82 @@ public:
             return 0;
         }
 
-        int res = 0;
-        int rows = grid.size();
-        int cols = grid[0].size();
+        const int m = grid.size();
+        const int n = grid[0].size();
 
-        for (int r = 0; r < rows; ++r) {
-            for (int c = 0; c < cols; ++c) {
-                if (grid[r][c] == '1') {
-                    ++res;
-                    bfs(grid, r, c);
+        int count = 0;
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (grid[i][j] == '0') {
+                    continue;
                 }
+
+                ++count;
+                dfs(grid, i, j);
             }
         }
 
-        return res;
-    }
-
-private:
-    void dfs(vector<vector<char>>& grid, int r, int c) {
-        int rows = grid.size();
-        int cols = grid[0].size();
-
-        if (r < 0 || c < 0 || r >= rows || c >= cols || grid[r][c] == '0') {
-            return;
-        }
-
-        grid[r][c] = '0';
-
-        dfs(grid, r - 1, c);
-        dfs(grid, r + 1, c);
-        dfs(grid, r, c - 1);
-        dfs(grid, r, c + 1);
-    }
-
-    void bfs(vector<vector<char>>& grid, int r, int c) {
-        int rows = grid.size();
-        int cols = grid[0].size();
-
-        std::queue<std::pair<int, int>> q;
-
-        q.push({r, c});
-        grid[r][c] = '0';
-
-        std::vector<std::pair<int, int>> directions = {
-            {0, -1},
-            {0, 1},
-            {1, 0},
-            {-1, 0},
-        };
-
-        while (!q.empty()) {
-            auto [curx, cury] = q.front();
-            q.pop();
-
-            for (const auto [dx, dy] : directions) {
-                auto x = curx + dx;
-                auto y = cury + dy;
-
-                if (x < rows && x >= 0
-                    && y < cols && y >= 0
-                    && grid[x][y] == '1') {
-                    grid[x][y] = '0';
-                    q.push({x, y});
-                }
-            }
-        }
+        return count;
     }
 };
+
+/*
+grid:
+1 1 1 1 1 1 1 1 ...
+1 1 1 1 1 1 1 1 ...
+1 1 1 1 1 1 1 1 ...
+
+bfs, O(min(m, n)):
+0 1 2 3 [4] 5 6 ...
+1 2 3 [4] 5 6 7 ...
+2 3 [4] 5 6 7 8 ...
+
+grid:
+1 0 0 0 1 0 0 0 1 0 0 0 1
+1 0 0 0 1 0 0 0 1 0 0 0 1
+1 1 1 1 1 0 0 0 1 1 1 1 1
+1 0 1 0 1 0 0 0 1 0 1 0 1
+1 0 1 0 1 0 0 0 1 0 1 0 1
+0 0 1 0 0 0 0 0 0 0 1 0 0
+0 0 1 1 1 1 1 1 1 1 1 0 0
+0 0 1 0 0 0 0 0 0 0 1 0 0
+1 0 1 0 1 0 0 0 1 0 1 0 1
+1 0 1 0 1 0 0 0 1 0 1 0 1
+1 1 1 1 1 0 0 0 1 1 1 1 1
+1 0 0 0 1 0 0 0 1 0 0 0 1
+1 0 0 0 1 0 0 0 1 0 0 0 1
+
+bfs, O(m * n):
+12  .  .  . 12  .  .  . 12  .  .  . 12
+11  .  .  . 11  .  .  . 11  .  .  . 11
+10  9  8  9 10  .  .  . 10  9  8  9 10
+11  .  7  . 11  .  .  . 11  .  7  . 11
+12  .  6  . 12  .  .  . 12  .  6  . 12
+ .  .  5  .  .  .  .  .  .  .  5  .  .
+ .  .  4  3  2  1  S  1  2  3  4  .  .
+ .  .  5  .  .  .  .  .  .  .  5  .  .
+12  .  6  . 12  .  .  . 12  .  6  . 12
+11  .  7  . 11  .  .  . 11  .  7  . 11
+10  9  8  9 10  .  .  . 10  9  8  9 10
+11  .  .  . 11  .  .  . 11  .  .  . 11
+12  .  .  . 12  .  .  . 12  .  .  . 12
+
+bfs:
+Time Complexity: O(m * n)
+Space Complexity: O(m * n)
+
+grid:
+1 1 1 1
+0 0 0 1
+1 1 1 1
+1 0 0 0
+1 1 1 1
+
+dfs:
+Time Complexity: O(m * n)
+Space Complexity: O(m * n)
+*/
 ```
 
 ### [1254. Number of Closed Islands](https://leetcode.com/problems/number-of-closed-islands/)
@@ -5246,6 +5309,68 @@ private:
         str += std::to_string(-direction) + ",";
     }
 };
+```
+
+```cpp
+class Solution {
+public:
+    int numDistinctIslands(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) return 0;
+
+        int m = grid.size();
+        int n = grid[0].size();
+        std::unordered_set<std::string> islands;
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (grid[i][j] == 1) {
+                    std::string str;
+                    dfs(grid, i, j, i, j, str);
+                    islands.insert(str);
+                }
+            }
+        }
+
+        return islands.size();
+    }
+
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, 1},
+        {0, -1},
+        {1, 0},
+        {-1, 0},
+    };
+
+    void dfs(std::vector<std::vector<int>>& grid, 
+             int x, int y, 
+             int originX, int originY, 
+             std::string& str) {
+        int m = grid.size();
+        int n = grid[0].size();
+
+        // base case
+        if (x < 0 || x >= m ||
+            y < 0 || y >= n ||
+            grid[x][y] == 0) {
+            return;
+        }
+
+        grid[x][y] = 0;
+        
+        str += std::to_string(x - originX) + std::to_string(y - originY) + ",";
+
+        for (const auto& [dx, dy] : directions) {
+            dfs(grid, x + dx, y + dy, originX, originY, str);
+        }
+    }
+};
+
+/*
+Time Complexity: O(m * n)
+Space Complexity: O(m * n)
+*/
 ```
 
 ### [23. Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/)
@@ -11974,34 +12099,425 @@ Space Complexity: O(h), in average, h = log(n), in worst case, h = n
 */
 ```
 
-### []()
+### [5. Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring/)
+
+#### tag - 判断使用 dp[i] 还是 dp[i][j]，关键不是看题目给的是一维数组还是二维数组，而是看：描述一个子问题，需要几个独立变化的参数。另外在 dp state transition 中，如果 dp[i] 依赖 dp[i - 1]，就从左到右遍历，如果 dp[i] 依赖 dp[i + 1]，就从右到左遍历
 
 ```cpp
+class Solution {
+public:
+    string longestPalindrome(string s) {
+        // edge case
+        if (s.empty()) {
+            return "";
+        }
 
+        const int n = s.size();
+
+        // define dp table
+        // dp[i][j] represents if s[i...j] is a palindromic
+        std::vector<std::vector<bool>> dp(n, std::vector(n, false));
+
+        // initial dp table
+        for (int i = 0; i < n; ++i) {
+            dp[i][i] = true;
+        }
+
+        int start = 0;
+        int maxLen = 1;
+
+        // dp state transition
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                if (j - i <= 2 && s[i] == s[j]) {
+                    dp[i][j] = true;
+
+                    if (j - i + 1 > maxLen) {
+                        start = i;
+                        maxLen = j - i + 1;
+                    }
+                } else if (j - i > 2 && s[i] == s[j] && dp[i + 1][j - 1]) {
+                    dp[i][j] = true;
+
+                    if (j - i + 1 > maxLen) {
+                        start = i;
+                        maxLen = j - i + 1;
+                    }
+                }
+            }
+        }
+
+        return s.substr(start, maxLen);
+    }
+};
+
+/*
+Time Complexity: O(n^2)
+Space Complexity: O(n^2)
+*/
 ```
 
-### []()
+### [124. Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/)
+
+#### tag - 好题，思路可以背下来，postorder traversal. Returns the maximum sum of a downward path starting at the current node, including the current node itself.
+
+#### original version
 
 ```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+private:
+    int maxPathSumStartingAtRoot(TreeNode* root, int& maxSum) {
+        // base case
+        if (!root) {
+            return 0;
+        }
 
+        maxSum = std::max(maxSum, root->val);
+
+        if (!root->left && !root->right) {
+            return root->val;
+        }
+
+        int left = maxPathSumStartingAtRoot(root->left, maxSum);
+        int right = maxPathSumStartingAtRoot(root->right, maxSum);
+
+        if (root->left && root->right) {
+            maxSum = std::max(maxSum, root->val + left + right);
+            maxSum = std::max(maxSum, root->val + left);
+            maxSum = std::max(maxSum, root->val + right);
+
+            return std::max(root->val, root->val + std::max(left, right));
+        }
+
+        if (root->left) {
+            maxSum = std::max(maxSum, root->val + left);
+
+            return std::max(root->val, root->val + left);
+        } else /*if (root->right)*/ {
+            maxSum = std::max(maxSum, root->val + right);
+
+            return std::max(root->val, root->val + right);
+        }
+    }
+
+public:
+    int maxPathSum(TreeNode* root) {
+        // edge case
+        if (!root) {
+            return 0;
+        }
+
+        int maxSum = INT_MIN;
+        maxPathSumStartingAtRoot(root, maxSum);
+        return maxSum;
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(h), where h is the height of the tree, in the average case, h = log(n), in the worst case, h = n
+*/
 ```
 
-### []()
+#### optimization version
 
 ```cpp
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+private:
+    int maxPathSumStartingAtRoot(TreeNode* root, int& maxSum) {
+        // base case
+        if (!root) {
+            return 0;
+        }
 
+        int left = std::max(0, maxPathSumStartingAtRoot(root->left, maxSum));
+        int right = std::max(0, maxPathSumStartingAtRoot(root->right, maxSum));
+
+        maxSum = std::max(maxSum, root->val + left + right);
+
+        return root->val + std::max(left, right);
+    }
+
+public:
+    int maxPathSum(TreeNode* root) {
+        // edge case
+        if (!root) {
+            return 0;
+        }
+
+        int maxSum = INT_MIN;
+        maxPathSumStartingAtRoot(root, maxSum);
+        return maxSum;
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(h), where h is the height of the tree, in the average case, h = log(n), in the worst case, h = n
+*/
 ```
 
-### []()
+### [1943. Describe the Painting](https://leetcode.com/problems/describe-the-painting/)
+
+#### tag - 对于扫描线问题，如果要求返回每段连续区间对应的状态，可以采用：
 
 ```cpp
+for (const auto& [pos, delta] : events) {
+    // 1. Process the interval [prev, pos)
 
+    // 2. Advance the sweep line
+    prev = pos;
+
+    // 3. Apply the current event
+    curSum += delta;
+}
 ```
 
-### []()
+#### sweep line
 
 ```cpp
+class Solution {
+public:
+    vector<vector<long long>> splitPainting(vector<vector<int>>& segments) {
+        // edge case
+        if (segments.empty()) {
+            return {};
+        }
 
+        std::vector<std::pair<int, int>> events; // <pos, delta>
+        for (const auto& segment : segments) {
+            const auto& start = segment[0];
+            const auto& end = segment[1];
+            const auto& color = segment[2];
+
+            events.push_back({start, color});
+            events.push_back({end, -color});
+        }
+
+        std::sort(events.begin(), 
+                  events.end(), 
+                  [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+            if (a.first == b.first) {
+                return a.second < b.second; // make sure -color is before than color
+            }
+
+            return a.first < b.first;
+        });
+
+        std::vector<std::vector<long long>> res;
+        long long curSum = 0;
+        int start = events[0].first;
+
+        for (const auto& [pos, delta] : events) {
+            if (start != pos && curSum > 0) {
+                int end = pos;
+                res.push_back({start, end, curSum});
+            }
+            
+            curSum += delta;
+            start = pos;
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n)), where n is segments.size()
+Space Complexity: O(n)
+*/
+```
+
+### [149. Max Points on a Line](https://leetcode.com/problems/max-points-on-a-line/)
+
+#### tag - 小众题，不太会做，直接背答案吧
+
+```cpp
+class Solution {
+private:
+    struct PairHash {
+        size_t operator()(const std::pair<int, int>& p) const {
+            size_t h1 = hash<int>{}(p.first);
+            size_t h2 = hash<int>{}(p.second);
+            return h1 ^ (h2 << 1);
+        }
+    };
+
+public:
+    int maxPoints(vector<vector<int>>& points) {
+        const int n = points.size();
+
+        // edge case
+        if (n <= 2) {
+            return n;
+        }
+
+        int res = 0;
+
+        for (int i = 0; i < n; ++i) {
+            std::unordered_map<std::pair<int, int>, int, PairHash> slopes;
+            int maxCount = 0;
+
+            for (int j = 0; j < n; ++j) {
+                if (j == i) {
+                    continue;
+                }
+
+                int dx = points[j][0] - points[i][0];
+                int dy = points[j][1] - points[i][1];
+
+                int divisor = std::gcd(std::abs(dx), std::abs(dy));
+                dx /= divisor;
+                dy /= divisor;
+
+                if (dx < 0) {
+                    dx = -dx;
+                    dy = -dy;
+                }
+
+                if (dx == 0) {
+                    dy = 1;
+                }
+                if (dy == 0) {
+                    dx = 1;
+                }
+
+                int count = ++slopes[{dx, dy}];
+                maxCount = std::max(maxCount, count);
+            }
+
+            res = std::max(res, maxCount + 1);
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * n * log(C)), where n is points.size(), C is the maximum absolute coordinate difference
+Space Complexity: O(n)
+*/
+```
+
+### [733. Flood Fill](https://leetcode.com/problems/flood-fill/)
+
+#### tag - 重点注意 bfs 的空间复杂度分析，最坏情况下应该是 O(m * n)，O(min(m, n)) 这个说法流传很广，很多题解都这么写，面试时如果对方提到它，你可以说明它只是无障碍网格下的界。
+
+```cpp
+class Solution {
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, 1},
+        {0, -1},
+        {1, 0},
+        {-1, 0},
+    };
+
+public:
+    vector<vector<int>> floodFill(vector<vector<int>>& image, int sr, int sc, int color) {
+        const int m = image.size();
+        const int n = image[0].size();
+
+        auto originalColor = image[sr][sc];
+
+        // edge case
+        if (originalColor == color) {
+            return image;
+        }
+
+        std::queue<std::pair<int, int>> q;
+        q.push({sr, sc});
+        image[sr][sc] = color;
+
+        while (!q.empty()) {
+            auto cur = q.front();
+            q.pop();
+
+            for (const auto& [dx, dy] : directions) {
+                auto nextX = cur.first + dx;
+                auto nextY = cur.second + dy;
+
+                if (nextX < 0 || nextX >= m ||
+                    nextY < 0 || nextY >= n ||
+                    image[nextX][nextY] != originalColor) {
+                    continue;
+                }
+
+                q.push({nextX, nextY});
+                image[nextX][nextY] = color;
+            }
+        }
+
+        return image;
+    }
+};
+
+/*
+grid:
+1 1 1 1 1 1 1 1 ...
+1 1 1 1 1 1 1 1 ...
+1 1 1 1 1 1 1 1 ...
+
+bfs, O(min(m, n)):
+0 1 2 3 [4] 5 6 ...
+1 2 3 [4] 5 6 7 ...
+2 3 [4] 5 6 7 8 ...
+
+grid:
+1 0 0 0 1 0 0 0 1 0 0 0 1
+1 0 0 0 1 0 0 0 1 0 0 0 1
+1 1 1 1 1 0 0 0 1 1 1 1 1
+1 0 1 0 1 0 0 0 1 0 1 0 1
+1 0 1 0 1 0 0 0 1 0 1 0 1
+0 0 1 0 0 0 0 0 0 0 1 0 0
+0 0 1 1 1 1 1 1 1 1 1 0 0
+0 0 1 0 0 0 0 0 0 0 1 0 0
+1 0 1 0 1 0 0 0 1 0 1 0 1
+1 0 1 0 1 0 0 0 1 0 1 0 1
+1 1 1 1 1 0 0 0 1 1 1 1 1
+1 0 0 0 1 0 0 0 1 0 0 0 1
+1 0 0 0 1 0 0 0 1 0 0 0 1
+
+bfs, O(m * n):
+12  .  .  . 12  .  .  . 12  .  .  . 12
+11  .  .  . 11  .  .  . 11  .  .  . 11
+10  9  8  9 10  .  .  . 10  9  8  9 10
+11  .  7  . 11  .  .  . 11  .  7  . 11
+12  .  6  . 12  .  .  . 12  .  6  . 12
+ .  .  5  .  .  .  .  .  .  .  5  .  .
+ .  .  4  3  2  1  S  1  2  3  4  .  .
+ .  .  5  .  .  .  .  .  .  .  5  .  .
+12  .  6  . 12  .  .  . 12  .  6  . 12
+11  .  7  . 11  .  .  . 11  .  7  . 11
+10  9  8  9 10  .  .  . 10  9  8  9 10
+11  .  .  . 11  .  .  . 11  .  .  . 11
+12  .  .  . 12  .  .  . 12  .  .  . 12
+
+Time Complexity: O(m * n)
+Space Complexity: O(m * n) in worst case
+*/
 ```
 
 ### []()
