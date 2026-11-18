@@ -13142,10 +13142,147 @@ Space Complexity: O(n)
 */
 ```
 
-### []()
+### [1971. Find if Path Exists in Graph](https://leetcode.com/problems/find-if-path-exists-in-graph/)
+
+#### tag - 简单题，可以用 bfs/dfs/union find 做，用 union find 的时候要用 find(source) == find(destination) 比较，而不是 parent[source] == parent[destination]
+
+#### bfs
 
 ```cpp
+class Solution {
+public:
+    bool validPath(int n, vector<vector<int>>& edges, int source, int destination) {
+        // edge case
+        if (n <= 0) {
+            return false;
+        }
 
+        if (source == destination) {
+            return true;
+        }
+
+        if (edges.empty()) {
+            return false;
+        }
+
+        // build an undirected adjacency list
+        std::vector<std::vector<int>> graph(n);
+        for (const auto& edge : edges) {
+            auto u = edge.front();
+            auto v = edge.back();
+
+            graph[u].push_back(v);
+            graph[v].push_back(u);
+        }
+
+        std::queue<int> q;
+        std::vector<bool> visited(n + 1, false);
+
+        q.push(source);
+        visited[source] = true;
+
+        while (!q.empty()) {
+            auto cur = q.front();
+            q.pop();
+
+            for (const auto neighbor : graph[cur]) {
+                if (visited[neighbor]) {
+                    continue;
+                }
+
+                if (neighbor == destination) {
+                    return true;
+                }
+
+                q.push(neighbor);
+                visited[neighbor] = true;
+            }
+        }
+
+        return false;
+    }
+};
+
+/*
+Time Complexity: O(V + E), where V is n, E is edges.size()
+Space Complexity: O(V + E)
+*/
+```
+
+#### union find
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root; // path compression
+        return root;
+    }
+
+    bool unite(int a, int b) {
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return false;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
+    }
+
+public:
+    bool validPath(int n, vector<vector<int>>& edges, int source, int destination) {
+        // edge case
+        if (n <= 0) {
+            return false;
+        }
+
+        if (source == destination) {
+            return true;
+        }
+
+        if (edges.empty()) {
+            return false;
+        }
+
+        // initialize union find
+        parent.resize(n);
+        size.assign(n, 1);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+
+        for (const auto& edge : edges) {
+            const auto u = edge.front();
+            const auto v = edge.back();
+
+            unite(u, v);
+        }
+
+        return find(source) == find(destination);
+    }
+};
+
+/*
+Time Complexity: O(V + E * alpha(V)), where V is n, E is edges.size()
+Space Complexity: O(V)
+*/
 ```
 
 ### []()
