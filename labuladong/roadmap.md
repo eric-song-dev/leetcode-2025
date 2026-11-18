@@ -6,6 +6,7 @@
 2. 各个解题方法的模板
 3. 树和图的关系
 4. priority_queue 的使用，尤其是 cmp 的比大小
+5. sweep line 的数据结构如何选型
 
 ### [303. Range Sum Query - Immutable](https://leetcode.com/problems/range-sum-query-immutable/)
 
@@ -4839,6 +4840,38 @@ private:
         }
     }
 
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+    bool unite(int a, int b) {
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return false;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
+    }
+
 public:
     int numIslands(vector<vector<char>>& grid) {
         // edge case
@@ -4848,6 +4881,14 @@ public:
 
         const int m = grid.size();
         const int n = grid[0].size();
+        const int l = m * n;
+
+        // initialize union find
+        parent.resize(l);
+        size.resize(l, 1);
+        for (int i = 0; i < l; ++i) {
+            parent[i] = i;
+        }
 
         int count = 0;
 
@@ -4858,7 +4899,35 @@ public:
                 }
 
                 ++count;
-                dfs(grid, i, j);
+            }
+        }
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (grid[i][j] == '0') {
+                    continue;
+                }
+
+                int id = i * n + j;
+
+                for (const auto& [dx, dy] : directions) {
+                    int x = i + dx;
+                    int y = j + dy;
+
+                    if (x < 0 || x >= m ||
+                        y < 0 || y >= n ||
+                        grid[x][y] == '0') {
+                        continue;
+                    }
+
+                    int neighborId = x * n + y;
+
+                    if (!unite(id, neighborId)) {
+                        continue;
+                    }
+
+                    --count;
+                }
             }
         }
 
@@ -4920,6 +4989,10 @@ grid:
 
 dfs:
 Time Complexity: O(m * n)
+Space Complexity: O(m * n)
+
+union find:
+Time Complexity: O(m * n + l * alpha(m * n)), where l is the size of land
 Space Complexity: O(m * n)
 */
 ```
@@ -10410,9 +10483,11 @@ public:
             return INT_MIN;
         }
 
-        int target = k - 1;
+        const int n = nums.size();
+
         int left = 0;
-        int right = nums.size() - 1;
+        int right = n - 1;
+        const int target = k - 1; // since nums is 0-indexed
 
         while (left <= right) {
             int pivotIndex = partition(nums, left, right);
@@ -10423,7 +10498,7 @@ public:
                 right = pivotIndex - 1;
             } else /*if (pivotIndex < target)*/ {
                 left = pivotIndex + 1;
-            } 
+            }
         }
 
         return -1;
@@ -10431,6 +10506,9 @@ public:
 
 private:
     int partition(vector<int>& nums, int left, int right) {
+        int randIndex = left + rand() % (right - left + 1);
+        std::swap(nums[randIndex], nums[right]);
+        
         int pivot = nums[right];
         int i = left;
 
@@ -12281,7 +12359,7 @@ Space Complexity: O(h), where h is the height of the tree, in the average case, 
 
 ### [1943. Describe the Painting](https://leetcode.com/problems/describe-the-painting/)
 
-#### tag - 对于扫描线问题，如果要求返回每段连续区间对应的状态，可以采用：
+#### tag - 这题可以用 sweep line 或者 difference array 做。对于扫描线问题，如果要求返回每段连续区间对应的状态，可以采用：
 
 ```cpp
 for (const auto& [pos, delta] : events) {
@@ -12293,6 +12371,80 @@ for (const auto& [pos, delta] : events) {
     // 3. Apply the current event
     curSum += delta;
 }
+```
+
+```shell
+SWEEP LINE — Data Structure Selection
+=====================================
+
+Sweep Line
+│
+├── 1. Event Storage（如何存储事件）
+│   │
+│   ├── 能否安全地聚合同一坐标的事件？
+│   │   │
+│   │   ├── YES：聚合不会丢失必要信息
+│   │   │   │
+│   │   │   ├── 坐标范围较小
+│   │   │   │   └── std::vector<int> diff
+│   │   │   │       Time:  O(n + U)
+│   │   │   │       Space: O(U)
+│   │   │   │
+│   │   │   └── 坐标范围较大 / 稀疏
+│   │   │       └── std::map<int, long long> diff
+│   │   │           Time:  O(n log k)
+│   │   │           Space: O(k)
+│   │   │
+│   │   └── NO：必须保留原始事件信息
+│   │       └── std::vector<Event> events
+│   │           Time:  O(n log n)
+│   │           Space: O(n)
+│   │
+│   └── vector events 是通用方案
+│       无论能否安全聚合，都可以使用
+│
+│
+└── 2. State Maintenance（如何维护当前状态）
+    │
+    ├── Count / Sum
+    │   └── int / long long
+    │       e.g. Meeting Rooms II
+    │            Car Pooling
+    │            Describe the Painting
+    │
+    ├── Active Elements
+    │   └── set / unordered_set
+    │       e.g. 人员排班切分
+    │
+    ├── Maximum / Minimum
+    │   └── multiset / priority_queue
+    │       e.g. The Skyline Problem
+    │
+    └── Complex Range State
+        └── Segment Tree
+            e.g. Rectangle Area II
+
+
+NOTATION
+--------
+n = number of intervals
+k = number of distinct event positions
+U = size of the coordinate range
+
+
+KEY PRINCIPLES
+--------------
+1. Sweep Line = Ordered Event Processing + State Maintenance
+
+2. vector events : preserve individual events
+   map diff      : aggregate sparse events
+   vector diff   : aggregate dense events
+
+3. Event storage and state maintenance are independent.
+
+4. Aggregate events only when no necessary information is lost.
+
+5. Use long long when accumulated values may overflow int.
 ```
 
 #### sweep line
@@ -12338,6 +12490,51 @@ public:
             
             curSum += delta;
             start = pos;
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * log(n)), where n is segments.size()
+Space Complexity: O(n)
+*/
+```
+
+#### difference array
+
+```cpp
+class Solution {
+public:
+    vector<vector<long long>> splitPainting(vector<vector<int>>& segments) {
+        // edge case
+        if (segments.empty()) {
+            return {};
+        }
+
+        // build a difference array, using map here since the pos is very sparse
+        std::map<int, long long> diff; // key: pos, val: mix color delta
+        for (const auto& segment : segments) {
+            const auto start = segment[0];
+            const auto end = segment[1];
+            const auto color = segment[2];
+
+            diff[start] += color;
+            diff[end] -= color;
+        }
+
+        std::vector<std::vector<long long>> res;
+        int prevPos = diff.begin()->first;
+        long long curSum = 0;
+
+        for (const auto& [pos, delta] : diff) {
+            if (pos != prevPos && curSum > 0) {
+                res.push_back({prevPos, pos, curSum});
+            }
+
+            prevPos = pos;
+            curSum += delta;
         }
 
         return res;
@@ -12520,28 +12717,429 @@ Space Complexity: O(m * n) in worst case
 */
 ```
 
-### []()
+### [305. Number of Islands II](https://leetcode.com/problems/number-of-islands-ii/)
+
+#### tag - 好题，值得重复做。第一次遇到 Dynamic Connectivity（动态连通性）/Dynamic Union Find（动态激活节点）。使用 parent[id] == -1 判断当前位置是否为水。200 是静态网格，305 是动态网格。但更准确地说，并不是 200 不需要判断水，而是 200 可以直接通过 grid 判断水，而 305 的实现选择通过 parent 判断水。
+
+#### Dynamic Connectivity（动态连通性）/Dynamic Union Find（动态激活节点）
 
 ```cpp
+class Solution {
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, 1},
+        {0, -1},
+        {1, 0},
+        {-1, 0},
+    };
 
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+    bool unite(int a, int b) {
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return false;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
+    }
+
+public:
+    vector<int> numIslands2(int m, int n, vector<vector<int>>& positions) {
+        // edge case
+        if (m <= 0 || n <= 0 || positions.empty()) {
+            return {};
+        }
+
+        const int l = m * n;
+
+        // initialize union find
+        parent.resize(l, -1); // -1 means water
+        size.resize(l, 1);
+
+        int count = 0;
+        std::vector<int> res;
+
+        for (const auto& position : positions) {
+            const int r = position.front();
+            const int c = position.back();
+            int id = r * n + c;
+
+            if (parent[id] != -1) {
+                res.push_back(count);
+                continue;
+            }
+
+            parent[id] = id;
+            ++count;
+
+            for (const auto& [dx, dy] : directions) {
+                auto x = r + dx;
+                auto y = c + dy;
+
+                if (x < 0 || x >= m ||
+                    y < 0 || y >= n) {
+                    continue;
+                }
+
+                int neighborId = x * n + y;
+
+                if (parent[neighborId] == -1) {
+                    continue;
+                }
+
+                if (unite(id, neighborId)) {
+                    --count;
+                }
+            }
+
+            res.push_back(count);
+        }
+        
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(m * n + k * alpha(m * n))
+Space Complexity: O(m * n)
+*/
 ```
 
-### []()
+### [2812. Find the Safest Path in a Grid](https://leetcode.com/problems/find-the-safest-path-in-a-grid/)
+
+#### TLE version, 思路是先用 multi-source bfs 拿到所有 distance，然后用 backtrack 枚举所有从 [0, 0] 到 [n - 1, n - 1] 的路径，但会超时
 
 ```cpp
+class Solution {
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, 1},
+        {0, -1},
+        {1, 0},
+        {-1, 0},
+    };
 
+    void backtrack(std::vector<std::vector<int>>& grid,
+                   int r, int c,
+                   int minDist, int& maxFactor) {
+        minDist = std::min(minDist, grid[r][c]);
+
+        const int n = grid.size();
+
+        if (r == n - 1 && c == n - 1) {
+            maxFactor = std::max(maxFactor, minDist);
+            return;
+        }
+
+        auto originalVal = grid[r][c];
+        grid[r][c] = -1;
+
+        for (const auto& [dx, dy] : directions) {
+            int x = r + dx;
+            int y = c + dy;
+
+            if (x < 0 || x >= n ||
+                y < 0 || y >= n) {
+                continue;
+            }
+
+            if (grid[x][y] == -1) {
+                continue;
+            }
+
+            backtrack(grid, x, y, minDist, maxFactor);
+        }
+
+        grid[r][c] = originalVal;
+    }
+
+public:
+    int maximumSafenessFactor(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty() || grid.size() != grid[0].size()) {
+            return -1;
+        }
+
+        const int n = grid.size();
+
+        if (grid[0][0] == 1 || grid[n - 1][n - 1] == 1) {
+            return 0;
+        }
+
+        std::queue<std::pair<int, int>> q;
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (grid[i][j] == 1) {
+                    q.push({i, j});
+                    grid[i][j] = 0;
+                } else {
+                    grid[i][j] = -1;
+                }
+            }
+        }
+
+        int steps = 1;
+
+        while (!q.empty()) {
+            auto size = q.size();
+
+            while (size--) {
+                auto [r, c] = q.front();
+                q.pop();
+
+                for (const auto& [dx, dy] : directions) {
+                    int x = r + dx;
+                    int y = c + dy;
+
+                    if (x < 0 || x >= n ||
+                        y < 0 || y >= n) {
+                        continue;
+                    }
+
+                    if (grid[x][y] != -1) {
+                        continue;
+                    }
+
+                    grid[x][y] = steps;
+                    q.push({x, y});
+                }
+            }
+
+            ++steps;
+        }
+
+        int minDist = INT_MAX;
+        int maxFactor = INT_MIN;
+
+        backtrack(grid, 0, 0, minDist, maxFactor);
+
+        return maxFactor;
+    }
+};
 ```
 
-### []()
+### [973. K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/)
+
+#### tag - quick select 中的 target 要等于 k - 1，因为数组一般是 0-indexed 的
+
+#### max heap
 
 ```cpp
+class Solution {
+public:
+    vector<vector<int>> kClosest(vector<vector<int>>& points, int k) {
+        // edge case
+        if (points.empty() || k <= 0) {
+            return {};
+        }
 
+        using T = std::pair<int, int>;
+
+        // max heap
+        auto cmp = [](const T& a, const T& b) {
+            return a.first * a.first + a.second * a.second < b.first * b.first + b.second * b.second;
+        };
+        std::priority_queue<T, std::vector<T>, decltype(cmp)> pq(cmp);
+
+        for (const auto& point : points) {
+            int x = point.front();
+            int y = point.back();
+
+            pq.push({x, y});
+
+            if (pq.size() > k) {
+                pq.pop();
+            }
+        }
+
+        std::vector<std::vector<int>> res;
+
+        while (!pq.empty()) {
+            auto point = pq.top();
+            pq.pop();
+
+            res.push_back({point.first, point.second});
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * log(k) + k * log(k)) = O((n + k) * log(k)), where n is points.size()
+Space Complexity: O(k)
+*/
 ```
 
-### []()
+#### quick select
 
 ```cpp
+class Solution {
+private:
+    int distance(const vector<int>& point) {
+        return point[0] * point[0] + point[1] * point[1];
+    }
 
+    int partition(std::vector<std::vector<int>>& points, int left, int right) {
+        int randPivot = left + rand() % (right - left + 1);
+        std::swap(points[randPivot], points[right]);
+
+        int pivot = distance(points[right]);
+        int i = left;
+
+        for (int j = left; j < right; ++j) {
+            if (distance(points[j]) < pivot) {
+                std::swap(points[i], points[j]);
+                ++i;
+            }
+        }
+
+        std::swap(points[i], points[right]);
+        return i;
+    }
+
+public:
+    vector<vector<int>> kClosest(vector<vector<int>>& points, int k) {
+        // edge case
+        if (points.empty() || k <= 0) {
+            return {};
+        }
+
+        const int n = points.size();
+
+        int left = 0;
+        int right = n - 1;
+        const int target = k - 1; // since points is 0-indexed
+        
+        while (left <= right) {
+            auto pivotIndex = partition(points, left, right);
+
+            if (pivotIndex == target) {
+                return std::vector<std::vector<int>>(points.begin(), points.begin() + k);
+            } else if (pivotIndex > target) {
+                right = pivotIndex - 1;
+            } else /*if (pivotIndex < target)*/ {
+                left = pivotIndex + 1;
+            }
+        }
+
+        return {};
+    }
+};
+
+/*
+Time Complexity: O(n), in worst case, O(n * n), where n is points.size()
+Space Complexity: O(k)
+*/
+```
+
+### [1101. The Earliest Moment When Everyone Become Friends](https://leetcode.com/problems/the-earliest-moment-when-everyone-become-friends/)
+
+#### tag - 注意 count == 1 的时候连通分量只有一个，也就是这道题出答案的时候
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+    bool unite(int a, int b) {
+        int rootA = find(a);
+        int rootB = find(b);
+
+        if (rootA == rootB) {
+            return false;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
+    }
+
+public:
+    int earliestAcq(vector<vector<int>>& logs, int n) {
+        // edge case
+        if (logs.empty() || n < 0) {
+            return -1;
+        }
+
+        // initialize union find
+        parent.resize(n);
+        size.assign(n, 1);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+
+        std::sort(logs.begin(), 
+                  logs.end(), 
+                  [](const std::vector<int>& a, const std::vector<int>& b) {
+            return a.front() < b.front();
+        });
+
+        int count = n;
+
+        for (const auto& log : logs) {
+            const auto timestamp = log[0];
+            const auto a = log[1];
+            const auto b = log[2];
+
+            if (!unite(a, b)) {
+                continue;
+            }
+
+            --count;
+
+            if (count == 1) {
+                return timestamp;
+            }
+        }
+
+        return -1;
+    }
+};
+
+/*
+Time Complexity: O(n + k * log(k) + k * alpha(n)), where k is logs.size()
+Space Complexity: O(n)
+*/
 ```
 
 ### []()
