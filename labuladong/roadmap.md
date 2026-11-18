@@ -13285,16 +13285,134 @@ Space Complexity: O(V)
 */
 ```
 
-### []()
+### [743. Network Delay Time](https://leetcode.com/problems/network-delay-time/)
+
+#### tag - 好题，经典。第一次学习并使用 Dijkstra 算法，有趣。注意 if (d > dist[curNode]) { and if (newD < dist[neighbor]) { 这些边界条件；以及在算时间复杂度中，pq 里最多可以存 E 个元素，因为我们使用 lazy deletion，相同的 V 可以重复进入 pq，所以 pq 里的元素是可以超过 V 的，可以让 AI 帮忙举例子
 
 ```cpp
+class Solution {
+public:
+    int networkDelayTime(vector<vector<int>>& times, int n, int k) {
+        // edge case
+        if (times.empty() || n <= 0 || k <= 0) {
+            return -1;
+        }
 
+        // build a directed adjacency list
+        std::vector<std::vector<std::pair<int, int>>> graph(n + 1);
+        for (const auto& time : times) {
+            const auto u = time[0];
+            const auto v = time[1];
+            const auto w = time[2];
+
+            graph[u].push_back({v, w});
+        }
+
+        std::vector<int> dist(n + 1, INT_MAX);
+        dist[k] = 0;
+
+        using T = std::pair<int, int>; // key: distance, value: node
+        std::priority_queue<T, std::vector<T>, std::greater<T>> pq; // min heap
+
+        pq.push({0, k});
+
+        while (!pq.empty()) {
+            auto [d, curNode] = pq.top();
+            pq.pop();
+
+            if (d > dist[curNode]) {
+                continue;
+            }
+
+            for (const auto& [neighbor, w] : graph[curNode]) {
+                int newD = d + w;
+
+                // relaxation
+                if (newD < dist[neighbor]) {
+                    dist[neighbor] = newD;
+                    pq.push({newD, neighbor});
+                }
+            }
+        }
+
+        int res = 0;
+
+        for (int i = 1; i <= n; ++i) {
+            if (dist[i] == INT_MAX) {
+                return -1;
+            }
+
+            res = std::max(res, dist[i]);
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(V + E + V + E * log(E)) = O(V + E * log(E)), where V is n, E is times.size()
+Space Complexity: O(V + E + V + E) = O(V + E)
+*/
 ```
 
-### []()
+### [1514. Path with Maximum Probability](https://leetcode.com/problems/path-with-maximum-probability/)
+
+#### tag - 注意这道题要用 max heap，因为算的是 Maximum Probability，所以 pq 选择 min heap 还是 max heap 需要视情况而定，而且这道题可以在出堆时做 early return，当 end_node 第一次有效出堆时，就已经找到了最大成功概率
 
 ```cpp
+class Solution {
+public:
+    double maxProbability(int n, vector<vector<int>>& edges, vector<double>& succProb, int start_node, int end_node) {
+        // edge case
+        if (n < 0 || edges.size() != succProb.size()) {
+            return 0;
+        }
 
+        // build an undirected adjacency list
+        std::vector<std::vector<std::pair<int, double>>> graph(n);
+        for (int i = 0; i < edges.size(); ++i) {
+            const int a = edges[i][0];
+            const int b = edges[i][1];
+            const double succP = succProb[i];
+
+            graph[a].push_back({b, succP});
+            graph[b].push_back({a, succP});
+        }
+
+        std::vector<double> prob(n, 0);
+        prob[start_node] = 1;
+
+        using T = std::pair<double, int>;
+        std::priority_queue<T, std::vector<T>, std::less<T>> pq; // max heap
+        pq.push({1, start_node});
+
+        while (!pq.empty()) {
+            auto [curSuccP, curNode] = pq.top();
+            pq.pop();
+
+            if (curSuccP < prob[curNode]) {
+                continue;
+            }
+
+            for (const auto& [neighbor, succP] : graph[curNode]) {
+                auto newSuccP = curSuccP * succP;
+
+                // relaxation
+                if (newSuccP > prob[neighbor]) {
+                    prob[neighbor] = newSuccP;
+                    pq.push({newSuccP, neighbor});
+                }
+            }
+        }
+
+        return prob[end_node];
+    }
+};
+
+/*
+Time Complexity: O(V + E + V + E * log(E)) = O(V + E * log(E)), where V is n, E is edges.size()
+Space Complexity: O(V + E)
+*/
 ```
 
 ### []()
