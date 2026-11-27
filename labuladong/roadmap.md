@@ -5830,7 +5830,7 @@ public:
         if (s.empty() || wordDict.empty()) return false;
 
         // dp[i] represents if s[0:i] (left close, right open interval) can be segmented into a space-separated sequence of one or more dictionary words
-        // dp[i] = (dp[j] == true && dp[j, i] in dict)
+        // dp[i] = (dp[j] == true && s[j, i] in dict)
         std::vector<bool> dp(s.size() + 1, false);
         dp[0] = true;
 
@@ -13415,46 +13415,606 @@ Space Complexity: O(V + E)
 */
 ```
 
-### []()
+### [1631. Path With Minimum Effort](https://leetcode.com/problems/path-with-minimum-effort/)
+
+#### tag - 在 matrix 上做 Dijkstra，注意下这道题如何算时间复杂度。而且这道题是 min max mixed 的，挺有意思，适合多做几次
 
 ```cpp
+class Solution {
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, 1},
+        {0, -1},
+        {1, 0},
+        {-1, 0},
+    };
 
+public:
+    int minimumEffortPath(vector<vector<int>>& heights) {
+        // edge case
+        if (heights.empty() || heights[0].empty()) {
+            return -1;
+        }
+
+        const int m = heights.size();
+        const int n = heights[0].size();
+
+        std::vector<std::vector<int>> efforts(m, std::vector<int>(n, INT_MAX));
+        efforts[0][0] = 0;
+
+        using T = std::pair<int, std::pair<int, int>>; // first: minEffort, second: cell
+        std::priority_queue<T, std::vector<T>, std::greater<T>> pq; // min heap
+        pq.push({0, {0, 0}});
+
+        while (!pq.empty()) {
+            const auto [minEffort, curCell] = pq.top();
+            pq.pop();
+
+            const auto [r, c] = curCell;
+
+            if (minEffort > efforts[r][c]) {
+                continue;
+            }
+
+            if (r == (m - 1) && c == (n - 1)) {
+                return minEffort;
+            }
+
+            for (const auto& [dx, dy] : directions) {
+                const auto x = r + dx;
+                const auto y = c + dy;
+
+                if (x < 0 || x >= m ||
+                    y < 0 || y >= n) {
+                    continue;
+                }
+
+                auto newEffort = std::max(minEffort, std::abs(heights[x][y] - heights[r][c]));
+                if (newEffort < efforts[x][y]) {
+                    efforts[x][y] = newEffort;
+                    pq.push({newEffort, {x, y}});
+                }
+            }
+        }
+
+        return -1;
+    }
+};
+
+/*
+Time Complexity: O(V + E * log(E)) = O(m * n * log(m * n)), where V is m * n, E is m * (n - 1) + n * (m - 1) = 2 * m * n - m - n
+Space Complexity: O(m * n)
+*/
 ```
 
-### []()
+### [2290. Minimum Obstacle Removal to Reach Corner](https://leetcode.com/problems/minimum-obstacle-removal-to-reach-corner/)
 
 ```cpp
+class Solution {
+private:
+    static inline const std::vector<std::pair<int, int>> directions = {
+        {0, 1},
+        {0, -1},
+        {1, 0},
+        {-1, 0},
+    };
 
+public:
+    int minimumObstacles(vector<vector<int>>& grid) {
+        // edge case
+        if (grid.empty() || grid[0].empty()) {
+            return -1;
+        }
+
+        const int m = grid.size();
+        const int n = grid[0].size();
+
+        std::vector<std::vector<int>> obstacles(m, std::vector<int>(n, INT_MAX));
+        obstacles[0][0] = grid[0][0];
+
+        using T = std::tuple<int, int, int>; // first: obstacles, second: i, third: j
+        std::priority_queue<T, std::vector<T>, std::greater<T>> pq; // min heap
+        pq.push({obstacles[0][0], 0, 0});
+
+        while (!pq.empty()) {
+            const auto [curObstacles, r, c] = pq.top();
+            pq.pop();
+
+            if (curObstacles > obstacles[r][c]) {
+                continue;
+            }
+
+            if (r == m - 1 && c == n - 1) {
+                return curObstacles;
+            }
+
+            for (const auto& [dx, dy] : directions) {
+                const auto x = r + dx;
+                const auto y = c + dy;
+
+                if (x < 0 || x >= m ||
+                    y < 0 || y >= n) {
+                    continue;
+                }
+
+                auto newObstacles = curObstacles + grid[x][y];
+
+                if (newObstacles < obstacles[x][y]) {
+                    obstacles[x][y] = newObstacles;
+                    pq.push({obstacles[x][y], x, y});
+                }
+            }
+        }
+
+        return -1;
+    }
+};
+
+/*
+Time Complexity: O(m * n * log(m * n))
+Space Complexity: O(m * n)
+*/
 ```
 
-### []()
+### [9. Palindrome Number](https://leetcode.com/problems/palindrome-number/)
+
+#### string
 
 ```cpp
+class Solution {
+public:
+    bool isPalindrome(int x) {
+        // edge case
+        if (x >= 0 && x <= 9) {
+            return true;
+        }
 
+        if (x < 0) {
+            return false;
+        }
+
+        std::string str = std::to_string(x);
+
+        const int n = str.size();
+
+        int left = 0;
+        int right = n - 1;
+
+        while (left < right) {
+            if (str[left] != str[right]) {
+                return false;
+            }
+
+            ++left;
+            --right;
+        }
+
+        return true;
+    }
+};
 ```
 
-### []()
+#### math
 
 ```cpp
+class Solution {
+public:
+    bool isPalindrome(int x) {
+        // edge case
+        if (x / 10 == 0 && x >= 0) {
+            return true;
+        }
 
+        if (x < 0 || (x % 10 == 0 && x != 0)) {
+            return false;
+        }
+
+        int reverse = 0;
+        while (x > reverse) {
+            reverse = reverse * 10 + x % 10;
+            x /= 10;
+        }
+
+        return x == reverse || x == reverse / 10;
+    }
+};
 ```
 
-### []()
+### [690. Employee Importance](https://leetcode.com/problems/employee-importance/)
 
 ```cpp
+/*
+// Definition for Employee.
+class Employee {
+public:
+    int id;
+    int importance;
+    vector<int> subordinates;
+};
+*/
 
+class Solution {
+private:
+    void dfs(const std::unordered_map<int, Employee*>& employeesMap, Employee* employee, int& res) {
+        res += employee->importance;
+
+        for (const auto& subordinateId : employee->subordinates) {
+            if (employeesMap.count(subordinateId)) {
+                dfs(employeesMap, employeesMap.at(subordinateId), res);
+            }
+        }
+    }
+
+public:
+    int getImportance(vector<Employee*> employees, int id) {
+        // edge case
+        if (employees.empty()) {
+            return 0;
+        }
+
+        std::unordered_map<int, Employee*> employeesMap;
+
+        for (const auto& employee : employees) {
+            employeesMap[employee->id] = employee;
+        }
+
+        int res = 0;
+
+        if (employeesMap.count(id)) {
+            dfs(employeesMap, employeesMap.at(id), res);
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n), where n is employees.size()
+Space Complexity: O(n)
+*/
 ```
 
-### []()
+### [3076. Shortest Uncommon Substring in an Array](https://leetcode.com/problems/shortest-uncommon-substring-in-an-array/)
+
+#### tag - 无聊的题，暴力枚举，纯考数据结构，注意 for (int j = i + 1; j <= str.size(); ++j) 这句里是 j <= str.size() 而不是 j < str.size()
 
 ```cpp
+class Solution {
+public:
+    vector<string> shortestSubstrings(vector<string>& arr) {
+        // edge case
+        if (arr.empty()) {
+            return {};
+        }
 
+        std::unordered_map<std::string, int> owner; // key: sub, value: index, -1 means this sub belongs to many strs
+
+        for (int index = 0; index < arr.size(); ++index) {
+            const auto& str = arr[index];
+            std::unordered_set<std::string> strs;
+
+            for (int i = 0; i < str.size(); ++i) {
+                for (int j = i + 1; j <= str.size(); ++j) {
+                    strs.insert(str.substr(i, j - i));
+                }
+            }
+
+            for (const auto& s : strs) {
+                if (owner.count(s)) {
+                    owner[s] = -1;
+                } else {
+                    owner[s] = index;
+                }
+            }
+        }
+
+        std::vector<std::string> res(arr.size());
+
+        for (const auto& [newSub, i] : owner) {
+            if (i == -1) {
+                continue;
+            }
+
+            const auto& prevSub = res[i];
+
+            if (prevSub.empty() ||
+                newSub.size() < prevSub.size() ||
+                (newSub.size() == prevSub.size() && newSub < prevSub)) {
+                res[i] = newSub;
+            }
+        }
+
+        return res;
+    }
+};
+
+/*
+Time Complexity: O(n * m^3), where n is arr.size(), m is max size of strs
+Space Complexity: O(n * m^3)
+*/
 ```
 
-### []()
+### [2366. Minimum Replacements to Sort the Array](https://leetcode.com/problems/minimum-replacements-to-sort-the-array/)
+
+#### tag - 好题，思路很新奇，从右往左遍历，注意 cpp 向上取整公式 int pieces = (nums[i] + bound - 1) / bound;
 
 ```cpp
+class Solution {
+public:
+    long long minimumReplacement(vector<int>& nums) {
+        // edge case
+        if (nums.size() <= 1) {
+            return 0;
+        }
 
+        const int n = nums.size();
+        long long totalOperations = 0;
+        int bound = nums.back();
+
+        for (int i = n - 2; i >= 0; --i) {
+            if (nums[i] > bound) {
+                int pieces = (nums[i] + bound - 1) / bound;
+                totalOperations += pieces - 1;
+                bound = nums[i] / pieces;
+            } else {
+                bound = nums[i];
+            }
+        }
+
+        return totalOperations;
+    }
+};
+
+/*
+Time Complexity: O(n)
+Space Complexity: O(1)
+*/
+```
+
+### [1258. Synonymous Sentences](https://leetcode.com/problems/synonymous-sentences/)
+
+#### tag - 又是超长的无聊题，涉及到多个数据结构，union find + backtrack，注意下 cpp split string by space 的方法。new version 里在 union find 里直接用了 std::string 作为合并的单位，比如 std::string find(std::string x)，然后 union find 的初始化不一定要在外面，也可以在 bool unite(std::string a, std::string b) 里面做
+
+#### original version
+
+```cpp
+class Solution {
+private:
+    std::vector<int> parent;
+    std::vector<int> size;
+
+    int find(int x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+    bool unite(int a, int b) {
+        int rootA = find(a);
+        int rootB = find(b);
+
+        if (rootA == rootB) {
+            return false;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
+    }
+
+    void backtrack(const std::vector<std::vector<std::string>>& options,
+                   int startIndex,
+                   std::vector<std::string>& res,
+                   std::string& path) {
+        // collect result
+        if (startIndex == options.size()) {
+            res.push_back(path.substr(0, path.size() - 1));
+            return;
+        }
+
+        for (const auto& option : options[startIndex]) {
+            // make decision
+            auto originalSize = path.size();
+            path.append(option).append(" ");
+
+            backtrack(options, startIndex + 1, res, path);
+
+            // cancel decision
+            path.resize(originalSize);
+        }
+    }
+
+public:
+    vector<string> generateSentences(vector<vector<string>>& synonyms, string text) {
+        // edge case
+        if (text.empty()) {
+            return {};
+        }
+
+        std::unordered_map<std::string, int> str2Num;
+        std::unordered_map<int, std::string> num2Str;
+        int num = 0;
+
+        for (const auto& synonym : synonyms) {
+            const auto& str1 = synonym.front();
+            const auto& str2 = synonym.back();
+
+            if (!str2Num.count(str1)) {
+                str2Num[str1] = num;
+                num2Str[num] = str1;
+                ++num;
+            }
+
+            if (!str2Num.count(str2)) {
+                str2Num[str2] = num;
+                num2Str[num] = str2;
+                ++num;
+            }
+        }
+
+        // initialize union find
+        parent.resize(num);
+        size.assign(num, 1);
+        for (int i = 0; i < num; ++i) {
+            parent[i] = i;
+        }
+
+        for (const auto& synonym : synonyms) {
+            const auto& str1 = synonym.front();
+            const auto& str2 = synonym.back();
+
+            unite(str2Num[str1], str2Num[str2]);
+        }
+
+        std::unordered_map<std::string, std::vector<std::string>> groups;
+        for (const auto& [num, str] : num2Str) {
+            auto rootStr = num2Str[find(num)];
+            groups[rootStr].push_back(str);
+        }
+
+        std::vector<std::vector<std::string>> options;
+        std::stringstream ss(text);
+        std::string word;
+        while (ss >> word) {
+            if (str2Num.count(word)) {
+                auto group = groups[num2Str[find(str2Num[word])]];
+                std::sort(group.begin(), group.end());
+                options.push_back(group);
+            } else {
+                options.push_back({word});
+            }
+        }
+
+        std::vector<std::string> res;
+        std::string path;
+
+        backtrack(options, 0, res, path);
+
+        return res;
+    }
+};
+```
+
+#### new version
+
+```cpp
+class Solution {
+private:
+    std::unordered_map<std::string, std::string> parent;
+    std::unordered_map<std::string, int> size;
+
+    std::string find(std::string x) {
+        if (x == parent[x]) {
+            return x;
+        }
+
+        auto root = find(parent[x]);
+        parent[x] = root;
+        return root;
+    }
+
+    bool unite(std::string a, std::string b) {
+        if (!parent.count(a)) {
+            parent[a] = a;
+            size[a] = 1;
+        }
+
+        if (!parent.count(b)) {
+            parent[b] = b;
+            size[b] = 1;
+        }
+
+        auto rootA = find(a);
+        auto rootB = find(b);
+
+        if (rootA == rootB) {
+            return false;
+        }
+
+        if (size[rootA] > size[rootB]) {
+            parent[rootB] = rootA;
+            size[rootA] += size[rootB];
+        } else {
+            parent[rootA] = rootB;
+            size[rootB] += size[rootA];
+        }
+
+        return true;
+    }
+
+    void backtrack(const std::vector<std::vector<std::string>>& options,
+                   int startIndex,
+                   std::vector<std::string>& res,
+                   std::string& path) {
+        // collect result
+        if (startIndex == options.size()) {
+            res.push_back(path.substr(0, path.size() - 1));
+            return;
+        }
+
+        for (const auto& option : options[startIndex]) {
+            // make decision
+            auto originalSize = path.size();
+            path.append(option).append(" ");
+
+            backtrack(options, startIndex + 1, res, path);
+
+            // cancel decision
+            path.resize(originalSize);
+        }
+    }
+
+public:
+    vector<string> generateSentences(vector<vector<string>>& synonyms, string text) {
+        // edge case
+        if (text.empty()) {
+            return {};
+        }
+
+        for (const auto& synonym : synonyms) {
+            const auto& str1 = synonym.front();
+            const auto& str2 = synonym.back();
+
+            unite(str1, str2);
+        }
+
+        std::unordered_map<std::string, std::vector<std::string>> groups;
+        for (const auto& [str, parentStr] : parent) {
+            auto rootStr = find(str);
+            groups[rootStr].push_back(str);
+        }
+
+        std::vector<std::vector<std::string>> options;
+        std::stringstream ss(text);
+        std::string word;
+        while (ss >> word) {
+            if (parent.count(word)) {
+                auto group = groups[find(word)];
+                std::sort(group.begin(), group.end());
+                options.push_back(group);
+            } else {
+                options.push_back({word});
+            }
+        }
+
+        std::vector<std::string> res;
+        std::string path;
+
+        backtrack(options, 0, res, path);
+
+        return res;
+    }
+};
 ```
 
 ### []()
